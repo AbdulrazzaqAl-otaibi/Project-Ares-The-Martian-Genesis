@@ -1,0 +1,2467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Project Ares: The Martian Genesis</title>
+<style>
+/* ============================================================
+   PROJECT ARES — styles. One accent (Mars orange), glass panels.
+   ============================================================ */
+:root{--panel:rgba(10,14,20,.72);--line:rgba(255,255,255,.13);--accent:#ff7a3c;--cyan:#6fd3ff;--ok:#6fe3a1;--warn:#ffcf5a;--bad:#ff5a4d}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:#07090d;color:#e9edf2;font:13px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;user-select:none;-webkit-user-select:none}
+button{font:inherit;color:inherit;cursor:pointer}
+#gl{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
+.hidden{display:none!important}
+.glass{background:var(--panel);border:1px solid var(--line);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+
+/* ---------- ultra-slim top HUD ---------- */
+#hud{position:fixed;top:max(4px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);width:min(700px,calc(100vw - 8px));z-index:20;pointer-events:none}
+.hud-bar{display:flex;align-items:center;gap:8px;height:28px;padding:0 4px 0 10px;border-radius:14px;pointer-events:auto}
+.stat{display:flex;align-items:center;gap:4px;flex:0 1 112px;min-width:52px}
+.stat .ic{font-size:10px;font-weight:700;opacity:.85}
+.meter{flex:1;height:5px;border-radius:3px;background:rgba(255,255,255,.15);overflow:hidden;min-width:20px}
+.meter i{display:block;height:100%;width:100%;background:var(--cyan);border-radius:3px}
+.meter.en i{background:var(--warn)}
+.meter.low i{background:var(--bad);animation:blink .55s infinite}
+.stat b{font-size:10px;font-variant-numeric:tabular-nums;min-width:19px;text-align:right}
+.stat.pts{flex:0 0 auto;min-width:0;color:var(--warn)}
+.quest{flex:1 1 0;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px;font-weight:600;letter-spacing:.02em}
+#hudToggle{flex:0 0 22px;width:22px;height:22px;border-radius:11px;border:1px solid var(--line);background:rgba(255,255,255,.09);font-size:10px;line-height:1}
+.hud-drawer{margin:3px 12px 0;padding:6px 10px;border-radius:10px;font-size:11px;pointer-events:auto}
+.hud-drawer .row{display:flex;justify-content:space-between;gap:10px;margin-top:3px;opacity:.8;font-variant-numeric:tabular-nums}
+#hud.collapsed .hud-drawer{display:none}
+@keyframes blink{50%{opacity:.35}}
+
+/* ---------- hangar / customization ---------- */
+#hangar{position:fixed;inset:0;z-index:15;pointer-events:none}
+.hg-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:max(14px,env(safe-area-inset-top)) 16px 0}
+.brand small{display:block;letter-spacing:.28em;font-size:9px;opacity:.6}
+.brand h1{font-size:clamp(20px,4.6vw,34px);letter-spacing:.18em;font-weight:800;line-height:1.1}
+.brand span{color:var(--accent);letter-spacing:.24em;font-size:10px;text-transform:uppercase}
+.balance{padding:6px 14px;border-radius:999px;text-align:right;line-height:1.1;color:var(--warn);font-size:18px;font-weight:800;white-space:nowrap}
+.balance small{display:block;font-size:8px;letter-spacing:.2em;color:#e9edf2;opacity:.6;font-weight:600}
+.hg-panel{position:absolute;right:16px;top:50%;transform:translateY(-50%);width:340px;max-height:calc(100vh - 130px);overflow:auto;border-radius:16px;padding:12px;pointer-events:auto}
+.tabs{display:flex;gap:6px;margin-bottom:8px}
+.tabs button{flex:1;padding:8px 4px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.05);font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
+.tabs button.on{background:var(--accent);border-color:var(--accent);color:#1a0d05}
+.up{display:flex;align-items:center;gap:10px;padding:9px 2px;border-bottom:1px solid rgba(255,255,255,.07)}
+.up-i{flex:1;min-width:0}
+.up-i b{font-size:13px}
+.up-i small{display:block;font-size:10.5px;opacity:.7}
+.pips{display:flex;gap:3px;margin-top:5px}
+.pips i{width:22px;height:4px;border-radius:2px;background:rgba(255,255,255,.16)}
+.pips i.on{background:var(--accent)}
+.buy{flex:0 0 74px;padding:8px 0;border-radius:10px;border:1px solid var(--warn);background:rgba(255,207,90,.12);color:var(--warn);font-weight:700;font-size:12px}
+.buy:disabled{opacity:.35;cursor:default;border-color:var(--line);color:#e9edf2;background:none}
+#launchBtn{display:block;width:100%;margin-top:12px;padding:14px;border:0;border-radius:12px;background:linear-gradient(180deg,#ff9a55,#f0531c);color:#1a0d05;font-size:15px;font-weight:800;letter-spacing:.2em;box-shadow:0 0 26px rgba(255,122,60,.45)}
+#launchBtn:active{transform:translateY(1px)}
+.hint{margin-top:8px;font-size:10px;opacity:.55;text-align:center}
+@media (max-width:760px){
+  .hg-panel{left:8px;right:8px;top:auto;bottom:max(8px,env(safe-area-inset-bottom));transform:none;width:auto;max-height:48vh;padding:10px}
+  .up{padding:6px 2px}
+  #launchBtn{padding:11px;margin-top:8px}
+}
+
+/* ---------- in-game overlays ---------- */
+#log{position:fixed;left:10px;top:76px;z-index:18;width:min(330px,calc(100vw - 20px));pointer-events:none;display:flex;flex-direction:column;gap:4px}
+#log div{padding:5px 9px;border-radius:8px;font-size:11px;border-left:3px solid var(--accent);animation:logIn .3s}
+#log div.warn{border-left-color:var(--bad)}
+#log div.good{border-left-color:var(--ok)}
+@keyframes logIn{from{opacity:0;transform:translateX(-10px)}}
+#prompt{position:fixed;left:50%;bottom:19%;transform:translateX(-50%);z-index:18;padding:7px 14px 9px;border-radius:12px;font-size:12px;font-weight:600;text-align:center;white-space:nowrap;pointer-events:none}
+#prompt u{display:block;height:3px;margin-top:5px;border-radius:2px;background:rgba(255,255,255,.18);overflow:hidden;text-decoration:none}
+#prompt u i{display:block;height:100%;width:0;background:var(--accent)}
+#wp{position:fixed;z-index:11;left:0;top:0;pointer-events:none;font-size:10px;font-weight:700;text-align:center;color:var(--accent);text-shadow:0 1px 3px #000;will-change:transform}
+#wp i{display:block;width:12px;height:12px;margin:0 auto 2px;border:2px solid var(--accent);transform:rotate(45deg);background:rgba(255,122,60,.25)}
+#tele{position:fixed;left:50%;bottom:max(12px,env(safe-area-inset-bottom));transform:translateX(-50%);z-index:18;display:flex;gap:12px;padding:6px 14px;border-radius:12px;font-size:11px;font-variant-numeric:tabular-nums;white-space:nowrap;pointer-events:none}
+#tele b{color:var(--cyan)}
+#banner{position:fixed;left:50%;top:22%;transform:translateX(-50%);z-index:19;width:min(560px,92vw);text-align:center;pointer-events:none}
+#banner h2{font-size:clamp(16px,4vw,26px);letter-spacing:.14em;font-weight:800}
+#banner p{margin-top:6px;font-size:12px;opacity:.9}
+#banner.alarm h2{color:var(--bad)}
+#alarm{position:fixed;inset:0;z-index:17;pointer-events:none;box-shadow:inset 0 0 120px 30px rgba(255,40,20,.55);animation:blink .5s infinite}
+#align{position:fixed;left:50%;bottom:max(14px,env(safe-area-inset-bottom));transform:translateX(-50%);z-index:19;width:min(360px,calc(100vw - 180px));min-width:230px;padding:10px 12px;border-radius:12px;font-size:11px;text-align:center}
+#align .meter{height:8px;margin:6px 0}
+#align button{margin-top:6px;padding:5px 12px;border-radius:8px;border:1px solid var(--line);background:rgba(255,255,255,.08);font-size:10px}
+#fade{position:fixed;inset:0;z-index:50;background:#000;opacity:0;pointer-events:none;transition:opacity .5s}
+#fade.on{opacity:1;pointer-events:auto}
+
+/* ---------- modal sheets: fact cards, mission end, loading ---------- */
+.modal{position:fixed;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;padding:14px;background:rgba(4,6,10,.6);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+.sheet{width:min(520px,100%);max-height:86vh;overflow:auto;padding:20px;border-radius:16px;background:linear-gradient(160deg,rgba(34,22,16,.96),rgba(10,14,20,.96));border:1px solid var(--line);box-shadow:0 20px 60px rgba(0,0,0,.6)}
+.sheet .tag{font-size:9px;letter-spacing:.26em;color:var(--accent);font-weight:700}
+.sheet h3{font-size:19px;margin:6px 0 10px;line-height:1.2}
+.sheet p{font-size:13px;line-height:1.55;opacity:.92;margin-bottom:9px}
+.sheet .src{font-size:10.5px;opacity:.6}
+.sheet .stats{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:10px 0}
+.sheet .stats div{padding:8px;border-radius:8px;background:rgba(255,255,255,.06);font-size:11px}
+.sheet .stats b{display:block;font-size:16px;color:var(--warn)}
+.sheet .go{display:block;width:100%;margin-top:8px;padding:12px;border:0;border-radius:10px;background:var(--accent);color:#1a0d05;font-weight:800;letter-spacing:.14em}
+#loading{z-index:60;background:#07090d;flex-direction:column;gap:14px;text-align:center}
+#loading h1{letter-spacing:.3em;font-size:22px}
+#loading p{font-size:11px;opacity:.6;letter-spacing:.1em}
+
+/* ---------- compass, menus, help ---------- */
+#compass{position:relative;height:16px;margin:3px auto 0;width:min(320px,72vw);border-radius:8px;overflow:hidden;pointer-events:none}
+#compass span{position:absolute;top:0;font-size:9px;line-height:16px;transform:translateX(-50%);font-weight:700;opacity:.8;white-space:nowrap}
+#compass span.t{opacity:.3;font-weight:400}
+#compass i{position:absolute;top:4px;width:8px;height:8px;margin-left:-4px;background:var(--accent);transform:rotate(45deg);box-shadow:0 0 6px var(--accent)}
+#compass b{position:absolute;left:50%;top:0;bottom:0;width:1px;background:rgba(255,255,255,.7)}
+#hudPause{flex:0 0 22px;width:22px;height:22px;border-radius:11px;border:1px solid var(--line);background:rgba(255,255,255,.09);font-size:8px;line-height:1;letter-spacing:-1px}
+.menu{display:grid;gap:8px;margin-top:8px}
+.menu button{padding:11px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.06);font-weight:700;letter-spacing:.08em;font-size:12px}
+.menu button.go{margin-top:0}
+.menu button.danger{color:#ff9a8f;border-color:rgba(255,90,77,.4)}
+.help{margin-top:12px;font-size:12px;display:grid;grid-template-columns:auto 1fr;gap:7px 12px;align-items:center}
+kbd{display:inline-block;min-width:22px;padding:2px 6px;margin:0 1px;border-radius:5px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.08);font:700 11px system-ui,sans-serif;text-align:center}
+.career{margin-top:6px;font-size:10px;opacity:.75;letter-spacing:.05em;line-height:1.5}
+.hg-btns{display:flex;gap:8px;align-items:flex-start}
+#gear{width:44px;height:44px;border-radius:22px;font-size:18px;pointer-events:auto}
+.stars{font-size:26px;letter-spacing:.2em;color:var(--warn);margin:4px 0 2px}
+.stars i{font-style:normal;color:rgba(255,255,255,.18)}
+.sheet .why{font-size:10.5px;opacity:.65;margin-bottom:6px}
+.brief-steps{margin:8px 0 6px 20px;font-size:13px;line-height:1.5}
+.brief-steps li{margin-bottom:6px;padding-left:2px}
+.brief-steps b{color:var(--warn)}
+.steps{margin:4px 0 0;padding:0;list-style:none;font-size:11px}
+.steps li{display:flex;gap:6px;margin-top:2px;opacity:.5}
+.steps li.now{opacity:1;font-weight:600}
+.steps li.ok{opacity:.45;text-decoration:line-through}
+.steps li i{font-style:normal;flex:0 0 12px;color:var(--accent)}
+.steps li.ok i{color:var(--ok)}
+#compass i.home{background:#6fd3ff;box-shadow:0 0 6px #6fd3ff}
+/* ---------- touch controls ---------- */
+#touch{position:fixed;inset:0;z-index:12;pointer-events:none}
+#joy{position:absolute;width:110px;height:110px;margin:-55px 0 0 -55px;border-radius:50%;border:2px solid rgba(255,255,255,.28);background:rgba(255,255,255,.05);display:none}
+#joy i{position:absolute;left:50%;top:50%;width:46px;height:46px;margin:-23px;border-radius:50%;background:rgba(255,255,255,.38)}
+.tbtn{position:absolute;width:66px;height:66px;border-radius:50%;border:2px solid rgba(255,255,255,.38);background:rgba(10,14,20,.5);font-weight:800;font-size:11px;letter-spacing:.08em;pointer-events:auto;touch-action:none}
+.tbtn.on{background:var(--accent);color:#1a0d05;border-color:var(--accent)}
+#btnAct{right:18px;bottom:calc(100px + env(safe-area-inset-bottom))}
+#btnJump{right:92px;bottom:calc(24px + env(safe-area-inset-bottom))}
+@media (max-width:520px){
+  .hud-bar{gap:5px;padding-left:8px}
+  .stat{flex:0 1 66px;min-width:0;gap:3px}
+  .stat .ic{font-size:9px}
+  .meter{min-width:12px}
+  .stat b{min-width:0;font-size:9.5px}
+  #hudPause,#hudToggle{flex-basis:20px;width:20px;height:20px}
+  #log{top:70px}
+  #tele{gap:8px;font-size:10px;padding:5px 10px}
+}
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+
+<!-- Loading curtain (also shows a readable error if WebGL / Three.js is unavailable) -->
+<div id="loading" class="modal"><h1>PROJECT ARES</h1><p id="loadTxt">Preparing mission systems…</p></div>
+
+<!-- 1. HANGAR & CUSTOMIZATION -->
+<div id="hangar" class="hidden">
+  <div class="hg-top">
+    <div class="brand"><small>A NASA SPACE APPS CHALLENGE PROJECT</small><h1>PROJECT ARES</h1><span>The Martian Genesis</span><div class="career" id="career"></div></div>
+    <div class="hg-btns"><div class="balance glass"><span>★ <span id="hgPts">0</span></span><small>MISSION POINTS</small></div><button id="gear" class="glass" aria-label="Settings">⚙</button></div>
+  </div>
+  <div class="hg-panel glass">
+    <div class="tabs"><button data-tab="ship" class="on">Spaceship</button><button data-tab="suit">Spacesuit</button></div>
+    <div id="upList"></div>
+    <button id="launchBtn">▲ LAUNCH MISSION</button>
+    <p class="hint">Drag to rotate · Finish all 5 quests on Mars to earn 100 points</p>
+  </div>
+</div>
+
+<!-- 5. Ultra-slim HUD: Oxygen · Energy · Points · Quest + collapsible details -->
+<div id="hud" class="hidden">
+  <div class="hud-bar glass">
+    <div class="stat" title="Oxygen"><span class="ic">O₂</span><div class="meter" id="o2Meter"><i id="o2Fill"></i></div><b id="o2Txt">100</b></div>
+    <div class="stat" title="Suit energy"><span class="ic">⚡</span><div class="meter en" id="enMeter"><i id="enFill"></i></div><b id="enTxt">100</b></div>
+    <div class="stat pts" title="Mission points"><span class="ic">★</span><b id="ptsTxt">0</b></div>
+    <div class="quest" id="questTitle">—</div>
+    <button id="hudPause" aria-label="Pause">❚❚</button>
+    <button id="hudToggle" aria-label="Toggle quest details">▴</button>
+  </div>
+  <div id="compass" class="glass hidden"><b></b></div>
+  <div class="hud-drawer glass">
+    <div id="questDesc"></div><ul class="steps" id="questSteps"></ul>
+    <div class="row"><span id="questProg"></span><span id="radTxt"></span></div>
+  </div>
+</div>
+
+<div id="log"></div>
+<div id="banner" class="hidden"><h2 id="bannerH"></h2><p id="bannerP"></p></div>
+<div id="alarm" class="hidden"></div>
+<div id="prompt" class="glass hidden"><span id="promptTxt"></span><u><i id="promptBar"></i></u></div>
+<div id="wp" class="hidden"><i></i><span id="wpTxt"></span></div>
+<div id="tele" class="glass hidden"></div>
+<div id="align" class="glass hidden">
+  <div><b>DEEP SPACE LINK</b> — steer the dish onto Earth</div>
+  <div class="meter"><i id="sigFill"></i></div>
+  <div id="alignTxt"></div>
+  <button id="alignExit">Leave console</button>
+</div>
+
+<!-- NASA fact card (after each quest) -->
+<div id="card" class="modal hidden"><div class="sheet">
+  <div class="tag" id="cardTag"></div><h3 id="cardTitle"></h3><div id="cardBody"></div>
+  <button class="go" id="cardGo">CONTINUE MISSION</button>
+</div></div>
+
+<!-- Mission end (victory / failure) -->
+<div id="end" class="modal hidden"><div class="sheet">
+  <div class="tag" id="endTag"></div><h3 id="endTitle"></h3><p id="endBody"></p>
+  <div class="stars" id="endStars"></div><div class="why" id="endWhy"></div>
+  <div class="stats" id="endStats"></div>
+  <button class="go" id="endGo">RETURN TO HANGAR</button>
+</div></div>
+
+<!-- Pause / settings menu -->
+<div id="menu" class="modal hidden"><div class="sheet">
+  <div class="tag" id="menuTag">MISSION PAUSED</div><h3>Project Ares</h3>
+  <div class="menu">
+    <button class="go" id="mResume">RESUME</button>
+    <button id="mSound"></button>
+    <button id="mQuality"></button>
+    <button id="mHelp">CONTROLS</button>
+    <button class="danger" id="mAbort">ABORT MISSION (NO POINTS)</button>
+    <button class="danger" id="mReset">RESET PROGRESS</button>
+  </div>
+  <div class="help hidden" id="mHelpBox"></div>
+</div></div>
+
+<!-- Quest briefing: what to do and why -->
+<div id="brief" class="modal hidden"><div class="sheet">
+  <div class="tag" id="briefTag"></div><h3 id="briefTitle"></h3><p id="briefWhy"></p>
+  <ol class="brief-steps" id="briefSteps"></ol>
+  <button class="go" id="briefGo">LET'S GO</button>
+</div></div>
+
+<!-- First-time controls card -->
+<div id="help" class="modal hidden"><div class="sheet">
+  <div class="tag">FIELD MANUAL</div><h3>Surviving on Mars</h3>
+  <p>Mars gravity is 38% of Earth's: you jump almost three times higher and land slowly. Oxygen and suit energy drain over time, so finish the quests before they run out.</p>
+  <div class="help" id="helpBox"></div>
+  <button class="go" id="helpGo">START EXPLORING</button>
+</div></div>
+
+<!-- Touch controls (shown on touch devices only) -->
+<div id="touch" class="hidden">
+  <div id="joy"><i id="joyKnob"></i></div>
+  <button class="tbtn" id="btnAct">ACT</button>
+  <button class="tbtn" id="btnJump">JUMP</button>
+</div>
+<div id="fade"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+'use strict';
+/* ============================================================
+   PROJECT ARES: THE MARTIAN GENESIS
+   Flow:  HANGAR -> SPACE FLIGHT -> EMERGENCY LANDING -> MARS (5 quests) -> VICTORY -> HANGAR
+   Units: 1 world unit = 1 metre. Mars gravity = 3.72 m/s^2 (0.38 g).
+   ============================================================ */
+const $ = id => document.getElementById(id);
+if (!window.THREE) { $('loadTxt').textContent = 'Could not load Three.js — check your internet connection and reload.'; return; }
+
+// ---------- small helpers ----------
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+const lerp = (a, b, t) => a + (b - a) * t;
+const smooth = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+const damp = (cur, target, lambda, dt) => lerp(cur, target, 1 - Math.exp(-lambda * dt));
+const rand = (a, b) => a + Math.random() * (b - a);
+const IS_TOUCH = matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
+const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
+
+// ---------- game data ----------
+const MARS_G = 3.72;                       // m/s^2 — 38% of Earth's 9.81
+const WIN_REWARD = 100;                    // points for finishing all 5 quests
+const UP_COST = [20, 30, 40, 55, 70];      // cost of level 1..5
+const UPG = {
+  fuel:   { tab: 'ship', name: 'Fuel Efficiency',     desc: 'Longer landing burn',            fx: l => '-' + l * 9 + '% fuel use' },
+  shield: { tab: 'ship', name: 'Thermal Shields',     desc: 'Less hull damage in flight',     fx: l => '-' + l * 13 + '% damage' },
+  thrust: { tab: 'ship', name: 'Thrust Power',        desc: 'Stronger braking & steering',    fx: l => '+' + l * 12 + '% thrust' },
+  o2:     { tab: 'suit', name: 'Oxygen Capacity',     desc: 'Bigger life-support tanks',      fx: l => '+' + l * 15 + '% oxygen' },
+  rad:    { tab: 'suit', name: 'Radiation Shielding', desc: 'Slower dose build-up',           fx: l => '-' + l * 14 + '% dose' },
+  speed:  { tab: 'suit', name: 'Movement Speed',      desc: 'Lighter joints, faster stride',  fx: l => '+' + l * 8 + '% speed' }
+};
+const QUESTS = [
+  { title: 'Restore Power',       desc: 'Open the 3 solar arrays around the lander.' },
+  { title: 'Extract Water Ice',   desc: 'Drill 2 m down to the buried ice.' },
+  { title: 'Secure the Lava Tube',desc: 'Shelter from the solar storm inside the lava tube.' },
+  { title: 'Grow the Green Dome', desc: 'Wash the toxic salts out of the greenhouse soil.' },
+  { title: 'Proof of Life',       desc: 'Aim the radio dish at Earth and call home.' }
+];
+// Real NASA science, shown after each quest.
+const FACTS = [
+  { title: 'Sunlight is weaker on Mars',
+    body: ['Mars orbits about 1.5 times farther from the Sun than Earth, so sunlight there is only about <b>43%</b> as strong — roughly 590 W/m² at the top of the atmosphere, against 1,361 W/m² at Earth.',
+           'NASA’s InSight lander unfolded two 2.2-metre solar arrays and generated about <b>4.6 kWh</b> on its first full sol. Dust slowly coated the panels, and falling power ended the mission in December 2022.'],
+    src: 'Source: NASA InSight mission; NASA Mars fact sheet' },
+  { title: 'Water ice and living off the land',
+    body: ['In 2008 NASA’s <b>Phoenix</b> lander scraped away a few centimetres of soil near 68°N and exposed bright water ice that slowly vanished into the thin air. Radar on Mars Reconnaissance Orbiter has since mapped buried ice sheets across the mid-latitudes.',
+           'Using local resources is called <b>ISRU</b>. At Jezero Crater, Perseverance’s MOXIE experiment made 122 g of oxygen from Martian CO₂ in 16 runs (2021–2023).',
+           '<i>Honest note:</i> at Jezero’s latitude (18°N) water is mostly locked inside minerals — shallow ice here is this game’s creative licence.'],
+    src: 'Source: NASA Phoenix, MRO SHARAD, Mars 2020 MOXIE' },
+  { title: 'Radiation and lava tubes',
+    body: ['Mars has no global magnetic field and air less than 1% as thick as Earth’s. Curiosity’s RAD instrument measured about <b>0.67 millisieverts per day</b> on the surface — far more than on Earth’s surface.',
+           'Orbiters have photographed collapsed <b>lava tubes</b> and “skylight” pits on the flanks of volcanoes such as Arsia Mons and Pavonis Mons. A few metres of rock overhead would block most of that radiation, which makes them prime candidates for habitats.'],
+    src: 'Source: NASA MSL/RAD (Hassler et al., 2014); MRO HiRISE' },
+  { title: 'Perchlorates: toxic soil, fixable soil',
+    body: ['Phoenix’s Wet Chemistry Lab discovered <b>perchlorate</b> salts making up about 0.4–0.6% of the soil, and Curiosity later found them at Gale Crater too. Perchlorate is harmful to the human thyroid.',
+           'The good news: it dissolves easily in water, and some microbes can break it down and release oxygen. Rinsed Mars-soil simulant has grown crops such as tomatoes, peas and rye in laboratory studies.'],
+    src: 'Source: NASA Phoenix (Hecht et al., 2009); MSL SAM' },
+  { title: 'Calling home across the void',
+    body: ['A radio signal needs between about <b>3 and 22 minutes</b> to travel from Mars to Earth, depending on where the two planets are in their orbits.',
+           'NASA’s <b>Deep Space Network</b> listens with 70-metre dishes at Goldstone (California), Madrid and Canberra — spaced about 120° apart so one always faces Mars. Seen from Mars, Earth and the Moon are just a bright double “star”; Curiosity photographed them in 2014.'],
+    src: 'Source: NASA Deep Space Network; MSL Mastcam' }
+];
+
+// ---------- persistent save (points + upgrade levels) ----------
+const save = { points: 60, up: { fuel: 0, shield: 0, thrust: 0, o2: 0, rad: 0, speed: 0 }, career: { launches: 0, wins: 0, best: 0 } };
+try {
+  const s = JSON.parse(localStorage.getItem('projectAres.v1') || 'null');
+  if (s && typeof s.points === 'number') { save.points = Math.max(0, s.points | 0); for (const k in save.up) save.up[k] = clamp(s.up[k] | 0, 0, 5); if (s.career) for (const k in save.career) save.career[k] = +s.career[k] || 0; }
+} catch (e) { /* storage unavailable: play without saving */ }
+const saveGame = () => { try { localStorage.setItem('projectAres.v1', JSON.stringify(save)); } catch (e) {} };
+const lvl = k => save.up[k];
+
+// ---------- value noise / fbm (terrain + procedural PBR textures) ----------
+function hash2(ix, iy, seed) {
+  let h = Math.imul(ix, 374761393) + Math.imul(iy, 668265263) + Math.imul(seed, 1442695041) | 0;
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  return ((h ^ (h >>> 16)) >>> 0) / 4294967295;
+}
+// `period` (integer) makes the noise wrap, so generated textures tile seamlessly.
+function vnoise(x, y, seed, period) {
+  let x0 = Math.floor(x), y0 = Math.floor(y);
+  const fx = x - x0, fy = y - y0;
+  let x1 = x0 + 1, y1 = y0 + 1;
+  if (period) { x0 = ((x0 % period) + period) % period; x1 = ((x1 % period) + period) % period; y0 = ((y0 % period) + period) % period; y1 = ((y1 % period) + period) % period; }
+  const u = fx * fx * (3 - 2 * fx), v = fy * fy * (3 - 2 * fy);
+  const a = hash2(x0, y0, seed), b = hash2(x1, y0, seed), c = hash2(x0, y1, seed), d = hash2(x1, y1, seed);
+  return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
+}
+function fbm(x, y, seed, oct, period) {
+  let s = 0, a = 0.5, f = 1, n = 0;
+  for (let i = 0; i < oct; i++) { s += a * vnoise(x * f, y * f, seed + i * 17, period ? period * f : 0); n += a; a *= 0.5; f *= 2; }
+  return s / n;
+}
+
+// ---------- renderer ----------
+const renderer = new THREE.WebGLRenderer({ canvas: $('gl'), antialias: !IS_TOUCH, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(devicePixelRatio || 1, IS_TOUCH ? 1.5 : 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;       // filmic response = photographic highlights (moved to the post pass in High quality)
+renderer.toneMappingExposure = 1.0;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+const MAX_ANISO = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+const pmrem = new THREE.PMREMGenerator(renderer);
+
+// ---------- graphics quality (saved per browser) ----------
+let QUALITY = IS_TOUCH ? 'low' : 'high';
+try { const q = localStorage.getItem('projectAres.quality'); if (q === 'low' || q === 'high') QUALITY = q; } catch (e) {}
+if (QUALITY === 'high') renderer.toneMapping = THREE.NoToneMapping;
+
+/* ---------- post-processing: HDR scene -> bloom -> ACES filmic tone map -> lens vignette, fringing, grain ----------
+   The scene renders into a floating-point target with NO tone mapping, so bright things (the Sun, rocket
+   exhaust, lamps) keep their true intensity and can bleed light (bloom) before the final filmic curve. */
+const post = (() => {
+  const gl2 = renderer.capabilities.isWebGL2, ext = renderer.extensions;
+  const half = gl2 ? ext.has('EXT_color_buffer_float') : (ext.has('OES_texture_half_float') && ext.has('EXT_color_buffer_half_float'));
+  const rtOpts = { type: half ? THREE.HalfFloatType : THREE.UnsignedByteType, depthBuffer: false, stencilBuffer: false };
+  const MSRT = gl2 && THREE.WebGLMultisampleRenderTarget && !IS_TOUCH;
+  const main = MSRT ? new THREE.WebGLMultisampleRenderTarget(1, 1, { type: rtOpts.type }) : new THREE.WebGLRenderTarget(1, 1, { type: rtOpts.type });
+  if (MSRT) main.samples = 4;
+  const A = new THREE.WebGLRenderTarget(1, 1, rtOpts), B = new THREE.WebGLRenderTarget(1, 1, rtOpts), C = new THREE.WebGLRenderTarget(1, 1, rtOpts), D = new THREE.WebGLRenderTarget(1, 1, rtOpts);
+  const cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1), scene = new THREE.Scene(), quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2));
+  quad.frustumCulled = false; scene.add(quad);
+  const VS = 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }';
+  const mat = (u, fs) => new THREE.ShaderMaterial({ uniforms: u, vertexShader: VS, fragmentShader: fs, depthTest: false, depthWrite: false });
+  const brightM = mat({ tSrc: { value: null }, uThresh: { value: 0.9 } },
+    'uniform sampler2D tSrc; uniform float uThresh; varying vec2 vUv;' +
+    'void main(){ vec3 c = texture2D(tSrc, vUv).rgb; float l = max(c.r, max(c.g, c.b)); gl_FragColor = vec4(min(c * smoothstep(uThresh, uThresh * 2.5, l), vec3(40.0)), 1.0); }');
+  const blurM = mat({ tSrc: { value: null }, uDir: { value: new THREE.Vector2() } },     // 9-tap Gaussian using linear filtering
+    'uniform sampler2D tSrc; uniform vec2 uDir; varying vec2 vUv;' +
+    'void main(){ vec3 c = texture2D(tSrc, vUv).rgb * 0.227027;' +
+    ' c += (texture2D(tSrc, vUv + uDir * 1.3846).rgb + texture2D(tSrc, vUv - uDir * 1.3846).rgb) * 0.316216;' +
+    ' c += (texture2D(tSrc, vUv + uDir * 3.2308).rgb + texture2D(tSrc, vUv - uDir * 3.2308).rgb) * 0.070270;' +
+    ' gl_FragColor = vec4(c, 1.0); }');
+  const U = { tScene: { value: main.texture }, tB1: { value: A.texture }, tB2: { value: C.texture }, uBloom: { value: 0.55 }, uExposure: { value: 1 }, uTime: { value: 0 },
+              uVig: { value: 0.55 }, uRed: { value: 0 }, uGrain: { value: 0.03 }, uRes: { value: new THREE.Vector2(1, 1) }, uFringe: { value: 1 } };
+  const finalM = mat(U, [
+    'uniform sampler2D tScene, tB1, tB2; uniform float uBloom, uExposure, uTime, uVig, uRed, uGrain, uFringe; uniform vec2 uRes; varying vec2 vUv;',
+    'vec3 fit(vec3 v){ vec3 a = v * (v + 0.0245786) - 0.000090537; vec3 b = v * (0.983729 * v + 0.4329510) + 0.238081; return a / b; }',
+    'vec3 aces(vec3 c){',                                                   // identical to three.js ACESFilmicToneMapping
+    '  const mat3 I = mat3(vec3(0.59719, 0.07600, 0.02840), vec3(0.35458, 0.90834, 0.13383), vec3(0.04823, 0.01566, 0.83777));',
+    '  const mat3 O = mat3(vec3(1.60475, -0.10208, -0.00327), vec3(-0.53108, 1.10813, -0.07276), vec3(-0.07367, -0.00605, 1.07602));',
+    '  return clamp(O * fit(I * (c * uExposure / 0.6)), 0.0, 1.0); }',
+    'vec3 srgb(vec3 c){ return mix(c * 12.92, 1.055 * pow(c, vec3(1.0 / 2.4)) - 0.055, step(0.0031308, c)); }',
+    'float hash(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }',
+    'void main(){',
+    '  vec2 d = vUv - 0.5; float r2 = dot(d, d);',
+    '  vec2 off = d * r2 * 0.012 * uFringe;',                                // lens colour fringing toward the edges
+    '  vec3 c = vec3(texture2D(tScene, vUv + off).r, texture2D(tScene, vUv).g, texture2D(tScene, vUv - off).b);',
+    '  c += (texture2D(tB1, vUv).rgb * 0.55 + texture2D(tB2, vUv).rgb * 0.9) * uBloom;',
+    '  c = aces(c);',
+    '  c *= 1.0 - uVig * r2 * 1.1;',                                         // vignette
+    '  c = mix(c, vec3(c.r * 0.8 + 0.25, c.g * 0.25, c.b * 0.2), uRed * smoothstep(0.02, 0.45, r2));',   // danger tint at the edges
+    '  c = srgb(c);',
+    '  c += (hash(vUv * uRes + fract(uTime * 7.13) * 91.7) - 0.5) * uGrain;',  // film grain (also hides banding)
+    '  gl_FragColor = vec4(c, 1.0); }'].join('\n'));
+  let W = 1, H = 1;
+  function pass(m, src, dst, dir) {
+    quad.material = m; m.uniforms.tSrc.value = src.texture;
+    if (dir) m.uniforms.uDir.value.copy(dir);
+    renderer.setRenderTarget(dst); renderer.render(scene, cam);
+  }
+  const dir = new THREE.Vector2();
+  return {
+    U, half,
+    get enabled() { return QUALITY === 'high'; },
+    setSize(w, h) {
+      W = w; H = h; main.setSize(w, h);
+      const hw = Math.max(1, w >> 1), hh = Math.max(1, h >> 1), qw = Math.max(1, w >> 2), qh = Math.max(1, h >> 2);
+      A.setSize(hw, hh); B.setSize(hw, hh); C.setSize(qw, qh); D.setSize(qw, qh); U.uRes.value.set(w, h);
+    },
+    render(sc, camera, t) {
+      if (QUALITY !== 'high') { renderer.setRenderTarget(null); renderer.render(sc, camera); return; }
+      renderer.setRenderTarget(main); renderer.render(sc, camera);
+      pass(brightM, main, A);
+      pass(blurM, A, B, dir.set(1 / (W >> 1), 0)); pass(blurM, B, A, dir.set(0, 1 / (H >> 1)));       // tight glow
+      pass(blurM, A, C, dir.set(2 / (W >> 2), 0)); pass(blurM, C, D, dir.set(0, 2 / (H >> 2)));       // wide glow
+      pass(blurM, D, C, dir.set(3 / (W >> 2), 0)); pass(blurM, C, D, dir.set(0, 3 / (H >> 2)));
+      U.tB2.value = D.texture; U.uTime.value = t;
+      quad.material = finalM; renderer.setRenderTarget(null); renderer.render(scene, cam);
+    }
+  };
+})();
+// Switch quality: post-processing on/off, tone mapping moves between the final pass and the materials.
+function applyQuality() {
+  const high = QUALITY === 'high';
+  renderer.toneMapping = high ? THREE.NoToneMapping : THREE.ACESFilmicToneMapping;
+  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, high ? 2 : (IS_TOUCH ? 1.25 : 1.5)));
+  if (mars.scene && mars.fogColors) mars.scene.fog.color.copy(high ? mars.fogColors.linear : mars.fogColors.output);
+  for (const sc of [hangar.scene, space.scene, mars.scene]) if (sc) sc.traverse(o => { const m = o.material; if (m) (Array.isArray(m) ? m : [m]).forEach(x => x.needsUpdate = true); });
+  if (mars.sun) { const n = high ? 2048 : 1024; if (mars.sun.shadow.mapSize.x !== n) { mars.sun.shadow.mapSize.set(n, n); if (mars.sun.shadow.map) { mars.sun.shadow.map.dispose(); mars.sun.shadow.map = null; } } }
+  onResize();
+}
+
+// ---------- procedural texture factory ----------
+// fn(u, v, out) writes [r, g, b, height] in 0..1. Returns a colour map and a normal map
+// derived from the height field, so every surface gets real PBR relief.
+function genTex(size, strength, fn) {
+  const c = document.createElement('canvas'); c.width = c.height = size;
+  const ctx = c.getContext('2d'), img = ctx.createImageData(size, size), H = new Float32Array(size * size), o = [0, 0, 0, 0];
+  for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+    fn(x / size, y / size, o);
+    const i = y * size + x;
+    img.data[i * 4] = o[0] * 255; img.data[i * 4 + 1] = o[1] * 255; img.data[i * 4 + 2] = o[2] * 255; img.data[i * 4 + 3] = 255; H[i] = o[3];
+  }
+  ctx.putImageData(img, 0, 0);
+  const n = document.createElement('canvas'); n.width = n.height = size;
+  const nctx = n.getContext('2d'), nimg = nctx.createImageData(size, size), m = size - 1;
+  for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+    const dx = (H[y * size + ((x + 1) & m)] - H[y * size + ((x - 1) & m)]) * strength;
+    const dy = (H[((y + 1) & m) * size + x] - H[((y - 1) & m) * size + x]) * strength;
+    const inv = 1 / Math.sqrt(dx * dx + dy * dy + 1), i = (y * size + x) * 4;
+    nimg.data[i] = (-dx * inv * 0.5 + 0.5) * 255; nimg.data[i + 1] = (dy * inv * 0.5 + 0.5) * 255; nimg.data[i + 2] = (inv * 0.5 + 0.5) * 255; nimg.data[i + 3] = 255;
+  }
+  nctx.putImageData(nimg, 0, 0);
+  const map = new THREE.CanvasTexture(c), normalMap = new THREE.CanvasTexture(n);
+  map.encoding = THREE.sRGBEncoding;
+  for (const t of [map, normalMap]) { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = MAX_ANISO; }
+  return { map, normalMap };
+}
+// Soft round sprite (dust, glows, exhaust).
+function glowTex(inner, outer) {
+  const c = document.createElement('canvas'); c.width = c.height = 64;
+  const g = c.getContext('2d'), gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  gr.addColorStop(0, inner); gr.addColorStop(0.35, outer); gr.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
+  return new THREE.CanvasTexture(c);
+}
+// ---------- shared textures ----------
+const TEX = {};
+function buildTextures() {
+  // Martian regolith: rust dust with wind ripples, sand grain, and two sizes of rounded basalt pebbles
+  // (cellular noise, so each stone is a separate dome that the normal map turns into real relief).
+  const PEB = [{ n: 20, p: 0.22, r0: 0.2, r1: 0.42, seed: 300 }, { n: 56, p: 0.3, r0: 0.18, r1: 0.4, seed: 400 }];
+  TEX.ground = genTex(512, 7, (u, v, o) => {
+    const n1 = fbm(u * 6, v * 6, 1, 5, 6), n2 = fbm(u * 24, v * 24, 9, 3, 24), grain = hash2((u * 512) | 0, (v * 512) | 0, 3);
+    const rip = Math.sin((u * 14 + v * 5) * Math.PI * 2 + n1 * 7) * 0.5 + 0.5;
+    let peb = 0, pc = 0;
+    for (const L of PEB) {
+      const gx = u * L.n, gy = v * L.n, cx = Math.floor(gx), cy = Math.floor(gy);
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+        const ix = cx + dx, iy = cy + dy, wx = ((ix % L.n) + L.n) % L.n, wy = ((iy % L.n) + L.n) % L.n;
+        if (hash2(wx, wy, L.seed) > L.p) continue;
+        const r = lerp(L.r0, L.r1, hash2(wx, wy, L.seed + 3)), ex = (gx - ix - 0.2 - 0.6 * hash2(wx, wy, L.seed + 1)) / r;
+        const ey = (gy - iy - 0.2 - 0.6 * hash2(wx, wy, L.seed + 2)) / (r * (0.65 + 0.35 * hash2(wx, wy, L.seed + 4))), d2 = ex * ex + ey * ey;
+        if (d2 < 1) { const h = Math.sqrt(1 - d2) * (L.n === 20 ? 1 : 0.6); if (h > peb) { peb = h; pc = hash2(wx, wy, L.seed + 5); } }
+      }
+    }
+    const t = smooth(0.3, 0.7, n1), k = (0.82 + n2 * 0.32) * (0.92 + grain * 0.16) * (0.95 + rip * 0.05), m = smooth(0, 0.22, peb), sh = 0.72 + 0.4 * peb;
+    o[0] = lerp(lerp(0.55, 0.72, t) * k, lerp(0.30, 0.56, pc) * sh, m);
+    o[1] = lerp(lerp(0.30, 0.46, t) * k, lerp(0.22, 0.38, pc) * sh, m);
+    o[2] = lerp(lerp(0.17, 0.27, t) * k, lerp(0.18, 0.28, pc) * sh, m);
+    o[3] = n1 * 0.35 + n2 * 0.15 + rip * 0.06 + grain * 0.035 + peb * 0.55;
+  });
+  // Large-scale noise that decides where the two terrain texture layouts blend (kills visible tiling).
+  {
+    const c = document.createElement('canvas'); c.width = c.height = 128;
+    const x = c.getContext('2d'), im = x.createImageData(128, 128);
+    for (let i = 0; i < 128 * 128; i++) { const vv = fbm((i % 128) / 128 * 8, Math.floor(i / 128) / 128 * 8, 77, 4, 8) * 255; im.data[i * 4] = im.data[i * 4 + 1] = im.data[i * 4 + 2] = vv; im.data[i * 4 + 3] = 255; }
+    x.putImageData(im, 0, 0);
+    TEX.macro = new THREE.CanvasTexture(c); TEX.macro.wrapS = TEX.macro.wrapT = THREE.RepeatWrapping;
+  }
+  // Basalt rock with fracture lines.
+  TEX.rock = genTex(256, 6, (u, v, o) => {
+    const n = fbm(u * 6, v * 6, 31, 5, 6), crack = 1 - smooth(0, 0.08, Math.abs(fbm(u * 4, v * 4, 47, 4, 4) - 0.5) * 2), k = 0.55 + n * 0.6 - crack * 0.3;
+    o[0] = 0.50 * k; o[1] = 0.33 * k; o[2] = 0.24 * k; o[3] = n * 0.8 - crack * 0.5;
+  });
+  // Painted metal plating with panel seams.
+  TEX.metal = genTex(256, 3, (u, v, o) => {
+    const gx = (u * 4) % 1, gy = (v * 4) % 1, line = (gx < 0.02 || gy < 0.02) ? 1 : 0, n = fbm(u * 16, v * 16, 61, 3, 16), k = 0.9 + n * 0.12 - line * 0.28;
+    o[0] = o[1] = o[2] = k; o[3] = 0.5 - line * 0.5 + n * 0.08;
+  });
+  // Photovoltaic cells: deep blue silicon with silver bus bars.
+  TEX.solar = genTex(256, 2, (u, v, o) => {
+    const line = ((u * 8) % 1 < 0.05 || (v * 4) % 1 < 0.06) ? 1 : 0, fine = ((u * 64) % 1 < 0.12) ? 0.12 : 0;
+    o[0] = line ? 0.62 : 0.03 + fine * 0.3; o[1] = line ? 0.64 : 0.06 + fine * 0.5; o[2] = line ? 0.68 : 0.2 + fine; o[3] = line ? 1 : 0.6;
+  });
+  // Woven suit fabric (Ortho-Fabric style outer layer).
+  TEX.fabric = genTex(128, 2.5, (u, v, o) => {
+    const w = Math.sin(u * Math.PI * 64) * Math.sin(v * Math.PI * 64) * 0.5 + 0.5, n = fbm(u * 8, v * 8, 71, 3, 8), k = 0.86 + n * 0.14;
+    o[0] = o[1] = o[2] = k; o[3] = w * 0.6 + n * 0.4;
+  });
+  // Stainless steel hull: brushed grain running around the ship, weld seams between rings.
+  TEX.steel = genTex(256, 2, (u, v, o) => {
+    const row = hash2(0, (v * 256) | 0, 81), n = fbm(u * 4, v * 4, 83, 3, 4);
+    const seam = (Math.abs(((v * 4) % 1) - 0.5) > 0.488 || Math.abs(((u * 2) % 1) - 0.5) > 0.494) ? 1 : 0;
+    const k = 0.8 + row * 0.07 + n * 0.12 - seam * 0.2;
+    o[0] = k * 0.97; o[1] = k * 0.98; o[2] = k; o[3] = 0.5 + n * 0.1 - seam * 0.45 + row * 0.03;
+  });
+  // Hexagonal heat-shield tiles (a true hex lattice, nearest-centre cells), light gap filler between tiles.
+  TEX.tiles = genTex(256, 5, (u, v, o) => {
+    const N = 8, M = 5, H = 0.8660254, X = u * N, Y = v * M * 2 * H;
+    let d1 = 9, d2 = 9, id = 0;
+    for (let L = 0; L < 2; L++) {
+      const ox = L * 0.5, oy = L * H, ci = Math.round(X - ox), cj = Math.round((Y - oy) / (2 * H));
+      for (let di = -1; di <= 1; di++) for (let dj = -1; dj <= 1; dj++) {
+        const i = ci + di, j = cj + dj, dx = X - (i + ox), dy = Y - (j * 2 * H + oy), d = Math.sqrt(dx * dx + dy * dy);
+        if (d < d1) { d2 = d1; d1 = d; id = hash2(((i % N) + N) % N, ((j % M) + M) % M, 900 + L); } else if (d < d2) d2 = d;
+      }
+    }
+    const edge = smooth(0.03, 0.09, d2 - d1), n = fbm(u * 16, v * 16, 905, 3, 16), k = 0.08 + id * 0.05 + n * 0.03;
+    o[0] = lerp(0.32, k, edge); o[1] = lerp(0.32, k * 0.98, edge); o[2] = lerp(0.31, k * 0.96, edge); o[3] = edge * 0.8 + n * 0.05;
+  });
+  // Yellow/black hazard stripes with grime.
+  TEX.hazard = genTex(128, 2, (u, v, o) => {
+    const st = ((u + v) * 4) % 1 < 0.5, n = fbm(u * 8, v * 8, 333, 3, 8), d = 0.72 + n * 0.32;
+    o[0] = (st ? 0.95 : 0.08) * d; o[1] = (st ? 0.72 : 0.08) * d; o[2] = (st ? 0.06 : 0.08) * d; o[3] = n * 0.3;
+  });
+  TEX.dust = glowTex('rgba(255,255,255,.9)', 'rgba(255,255,255,.35)');
+  { // Billowing dust cloud sprite: lumpy noise edge, lit from above.
+    const N = 128, c = document.createElement('canvas'); c.width = c.height = N;
+    const x = c.getContext('2d'), im = x.createImageData(N, N);
+    for (let y = 0; y < N; y++) for (let xx = 0; xx < N; xx++) {
+      const u = xx / N, v = y / N, dx = u - 0.5, dy = v - 0.5, r = Math.sqrt(dx * dx + dy * dy) * 2;
+      const n = fbm(u * 5, v * 5, 91, 5), a = clamp(smooth(0.98, 0.55, r + (n - 0.5) * 0.6) * (0.75 + n * 0.5), 0, 1);
+      const sh = 0.55 + 0.55 * (1 - v) + (n - 0.5) * 0.4, i = (y * N + xx) * 4;
+      im.data[i] = im.data[i + 1] = im.data[i + 2] = clamp(sh, 0, 1) * 255; im.data[i + 3] = a * 255;
+    }
+    x.putImageData(im, 0, 0); TEX.smoke = new THREE.CanvasTexture(c); TEX.smoke.encoding = THREE.sRGBEncoding;
+  }
+  TEX.glow = glowTex('rgba(255,255,255,1)', 'rgba(255,255,255,.25)');
+}
+// Clone a colour+normal pair with its own tiling.
+function rep(t, x, y) {
+  const r = {};
+  for (const k of ['map', 'normalMap']) { r[k] = t[k].clone(); r[k].repeat.set(x, y); r[k].needsUpdate = true; }
+  return r;
+}
+const std = p => new THREE.MeshStandardMaterial(p);
+function shadowAll(o) { o.traverse(m => { if (m.isMesh && !m.userData.noShadow) { m.castShadow = true; m.receiveShadow = true; } }); }
+
+// ---------- geometry helpers ----------
+const V2 = (x, y) => new THREE.Vector2(x, y);
+// Smooth limb segment: rounded at both ends, top at y = 0, hanging down to y = -len.
+function capsuleGeo(r1, r2, len, seg) {
+  const pts = [], n = 6;
+  for (let i = 0; i <= n; i++) { const a = -Math.PI / 2 + i / n * Math.PI / 2; pts.push(V2(Math.max(1e-4, Math.cos(a) * r2), -len + r2 + Math.sin(a) * r2)); }
+  for (let i = 0; i <= n; i++) { const a = i / n * Math.PI / 2; pts.push(V2(Math.max(1e-4, Math.cos(a) * r1), -r1 + Math.sin(a) * r1)); }
+  return new THREE.LatheGeometry(pts, seg || 16);
+}
+// Box with rounded edges (extruded rounded rectangle with a bevel), centred on the origin.
+function rboxGeo(w, h, d, r) {
+  r = Math.min(r, w / 2, h / 2, d / 2) * 0.999;
+  const b = r * 0.6, iw = w / 2 - b, ih = h / 2 - b, cr = Math.max(0.001, Math.min(r - b, iw, ih)), sh = new THREE.Shape();
+  sh.moveTo(-iw + cr, -ih); sh.lineTo(iw - cr, -ih); sh.quadraticCurveTo(iw, -ih, iw, -ih + cr); sh.lineTo(iw, ih - cr); sh.quadraticCurveTo(iw, ih, iw - cr, ih);
+  sh.lineTo(-iw + cr, ih); sh.quadraticCurveTo(-iw, ih, -iw, ih - cr); sh.lineTo(-iw, -ih + cr); sh.quadraticCurveTo(-iw, -ih, -iw + cr, -ih);
+  const dd = Math.max(0.001, d - 2 * b), g = new THREE.ExtrudeGeometry(sh, { depth: dd, bevelEnabled: true, bevelThickness: b, bevelSize: b, bevelSegments: 2, curveSegments: 4 });
+  g.translate(0, 0, -dd / 2); return g;
+}
+// Cylinder spanning two points (struts, braces, pipes).
+function strutGeo(a, b, r, seg) { return new THREE.CylinderGeometry(r, r, a.distanceTo(b), seg || 8); }
+function placeStrut(mesh, a, b) { mesh.position.copy(a).add(b).multiplyScalar(0.5); mesh.quaternion.setFromUnitVectors(V3(0, 1, 0), b.clone().sub(a).normalize()); return mesh; }
+// Canvas texture for small screens and labels.
+function canvasTex(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.anisotropy = MAX_ANISO; return { c, x: c.getContext('2d'), t }; }
+
+// ---------- spaceship model: stainless-steel lander with a black heat-shield side, flaps, 3 engines, 6 legs ----------
+function buildRocket() {
+  const g = new THREE.Group(), add = (parent, geo, mat, x, y, z) => { const m = new THREE.Mesh(geo, mat); m.position.set(x || 0, y || 0, z || 0); parent.add(m); return m; };
+  const st = rep(TEX.steel, 6, 3), tl = rep(TEX.tiles, 2, 5), fl = rep(TEX.tiles, 1, 1);
+  const steelM = std({ color: 0xe4e6ea, metalness: 0.9, roughness: 0.27, map: st.map, normalMap: st.normalMap, normalScale: V2(0.4, 0.4) });
+  const shieldM = std({ color: 0xffffff, metalness: 0.15, roughness: 0.8, map: tl.map, normalMap: tl.normalMap, normalScale: V2(0.8, 0.8), side: THREE.DoubleSide });
+  const flapM = std({ color: 0xffffff, metalness: 0.15, roughness: 0.75, map: fl.map, normalMap: fl.normalMap });
+  const darkM = std({ color: 0x26282d, metalness: 0.7, roughness: 0.42, side: THREE.DoubleSide });
+  const engM = std({ color: 0x9a7a5c, metalness: 0.9, roughness: 0.32, side: THREE.DoubleSide });          // heat-tinted engine bells
+  const winM = std({ color: 0x0b1a2a, metalness: 0.9, roughness: 0.06, emissive: 0xffd9a0, emissiveIntensity: 0 });
+  // Hull: straight barrel tapering into an ogive nose.
+  const prof = [V2(1.22, 2.25), V2(1.48, 2.6), V2(1.6, 3.0)];
+  for (let i = 0; i <= 32; i++) { const t = i / 32, k = Math.max(0, (t - 0.6) / 0.4); prof.push(V2(Math.max(0.02, 1.6 * Math.pow(Math.cos(k * Math.PI / 2), 0.68)), 3.05 + t * 13.2)); }
+  add(g, new THREE.LatheGeometry(prof, 56), steelM);
+  add(g, new THREE.CircleGeometry(1.22, 40).rotateX(Math.PI / 2), darkM, 0, 2.25);
+  // Heat-shield tiles cover the windward (-Z) half, like real belly-flop entry vehicles.
+  add(g, new THREE.LatheGeometry(prof.filter(q => q.y > 2.9 && q.y < 15.4).map(q => V2(q.x + 0.02, q.y)), 28, Math.PI / 2, Math.PI), shieldM);
+  // Aerodynamic flaps (aft pair large, forward pair small) on hinge fairings.
+  const flapGeo = (w0, w1, h) => { const sh = new THREE.Shape(); sh.moveTo(0, 0); sh.lineTo(w0, 0.15); sh.lineTo(w1, h - 0.12); sh.lineTo(0, h); sh.lineTo(0, 0); return new THREE.ExtrudeGeometry(sh, { depth: 0.08, bevelEnabled: true, bevelThickness: 0.025, bevelSize: 0.025, bevelSegments: 1 }); };
+  const aft = flapGeo(1.45, 1.05, 3.8), fwd = flapGeo(0.9, 0.5, 1.9);
+  for (const ang of [0, Math.PI]) {
+    const pv = new THREE.Group(); pv.rotation.y = ang; g.add(pv);
+    add(pv, aft, flapM, 1.5, 3.3, -0.04);
+    add(pv, fwd, flapM, 1.47, 12.25, -0.04).rotation.z = 0.13;
+    add(pv, rboxGeo(0.2, 3.9, 0.36, 0.07), darkM, 1.56, 5.2, 0);
+    add(pv, rboxGeo(0.18, 2.0, 0.3, 0.06), darkM, 1.5, 13.2, 0).rotation.z = 0.13;
+  }
+  // Three engine bells under the thrust structure.
+  add(g, new THREE.CylinderGeometry(1.0, 1.18, 0.25, 32), darkM, 0, 2.3);
+  const bells = new THREE.Group(); g.add(bells);
+  const bellG = new THREE.LatheGeometry([[0.2, 2.3], [0.17, 2.05], [0.28, 1.6], [0.42, 1.1], [0.52, 0.8]].map(q => V2(q[0], q[1])), 28);
+  for (let i = 0; i < 3; i++) { const a = i * 2.094 + 0.5; add(bells, bellG, engM, Math.cos(a) * 0.62, 0, Math.sin(a) * 0.62); }
+  // Six landing legs with braces and pads.
+  for (let i = 0; i < 6; i++) {
+    const a = i * Math.PI / 3 + Math.PI / 6, cx = Math.cos(a), cz = Math.sin(a);
+    const top = V3(cx * 1.45, 3.5, cz * 1.45), foot = V3(cx * 3.0, 0.12, cz * 3.0), brace = V3(cx * 1.5, 2.35, cz * 1.5);
+    placeStrut(add(g, strutGeo(top, foot, 0.085, 10), darkM), top, foot);
+    placeStrut(add(g, strutGeo(brace, top.clone().lerp(foot, 0.55), 0.05, 8), steelM), brace, top.clone().lerp(foot, 0.55));
+    add(g, new THREE.CylinderGeometry(0.32, 0.4, 0.1, 18), darkM, foot.x, 0.05, foot.z);
+  }
+  // Auxiliary propellant pods (shown by the Fuel Efficiency upgrade).
+  const tanks = [];
+  for (let i = 0; i < 4; i++) {
+    const a = i * Math.PI / 2 + Math.PI / 4, tk = new THREE.Group(); tk.position.set(Math.sin(a) * 1.86, 5.2, Math.cos(a) * 1.86); g.add(tk);
+    add(tk, new THREE.CylinderGeometry(0.26, 0.26, 1.7, 18), steelM); add(tk, new THREE.SphereGeometry(0.26, 18, 10), steelM, 0, 0.85); add(tk, new THREE.SphereGeometry(0.26, 18, 10), steelM, 0, -0.85);
+    for (const yy of [-0.5, 0.5]) add(tk, new THREE.CylinderGeometry(0.275, 0.275, 0.06, 18), darkM, 0, yy);
+    tanks.push(tk);
+  }
+  // Windows near the nose, a cargo hatch, and the mission name on the leeward (+Z) side.
+  for (let i = -2; i <= 2; i++) { const a = i * 0.22, m = add(g, new THREE.SphereGeometry(0.13, 14, 10), winM, Math.sin(a) * 1.34, 13.3, Math.cos(a) * 1.34); m.scale.z = 0.3; m.rotation.y = a; }
+  add(g, rboxGeo(1.0, 1.7, 0.05, 0.12), darkM, 0, 9.4, 1.585);
+  add(g, rboxGeo(0.88, 1.58, 0.06, 0.1), steelM, 0, 9.4, 1.6);
+  const nm = canvasTex(512, 256); nm.x.fillStyle = '#16181c'; nm.x.font = '900 150px Arial, sans-serif'; nm.x.textAlign = 'center'; nm.x.textBaseline = 'middle'; nm.x.fillText('ARES', 256, 132);
+  add(g, new THREE.CylinderGeometry(1.625, 1.625, 1.3, 24, 1, true, -0.62, 1.24), std({ map: nm.t, transparent: true, roughness: 0.5, metalness: 0.2 }), 0, 6.6).userData.noShadow = true;
+  // Engine plume (additive cones).
+  const flame = new THREE.Group(); flame.position.y = 0.75; flame.visible = false; g.add(flame);
+  const fm = (col, op) => new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: op, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false });
+  const f1 = add(flame, new THREE.ConeGeometry(0.95, 6, 20, 1, true), fm(0x6fa8ff, 0.5), 0, -3), f2 = add(flame, new THREE.ConeGeometry(0.5, 3.8, 16, 1, true), fm(0xffffff, 0.9), 0, -1.9);
+  f1.rotation.x = f2.rotation.x = Math.PI; f1.userData.noShadow = f2.userData.noShadow = true;
+  shadowAll(g);
+  g.userData = { flame, bell: bells, shieldM, winM, tanks };
+  return g;
+}
+function styleRocket(g) {
+  const u = g.userData, s = 1 + lvl('thrust') * 0.07, k = lvl('shield') / 5, c = lerp(1.7, 0.7, k);
+  u.bell.scale.set(s, 1, s);
+  u.shieldM.color.setRGB(c, c, c * 0.98);                                   // ash-grey worn tiles -> fresh deep-black tiles
+  u.shieldM.roughness = lerp(0.85, 0.42, k); u.shieldM.metalness = lerp(0.1, 0.3, k);
+  u.tanks.forEach((t, i) => t.visible = i < [0, 2, 2, 4, 4, 4][lvl('fuel')]);
+}
+
+// ---------- astronaut model (jointed, origin at the feet, faces +Z) ----------
+function buildAstronaut() {
+  const g = new THREE.Group(), fab = rep(TEX.fabric, 4, 4);
+  const suitM = std({ color: 0xefede7, roughness: 0.86, metalness: 0, map: fab.map, normalMap: fab.normalMap, normalScale: V2(0.6, 0.6) });
+  const hardM = std({ color: 0xf3f3ef, roughness: 0.32, metalness: 0.05 });               // composite hard shells
+  const greyM = std({ color: 0xa3a9b1, roughness: 0.3, metalness: 0.85 });                // bearings
+  const darkM = std({ color: 0x3a3d43, roughness: 0.75, metalness: 0.1 });                // gloves, soles
+  const panelM = std({ color: 0x6b7078, roughness: 0.45, metalness: 0.3 });
+  const redM = std({ color: 0xc41f2a, roughness: 0.6 });                                  // commander's stripes
+  const visorM = std({ color: 0xd9a63c, metalness: 1, roughness: 0.05 });                 // gold-coated sun visor
+  const glassM = std({ color: 0xffffff, metalness: 0, roughness: 0.02, transparent: true, opacity: 0.22, depthWrite: false, envMapIntensity: 2 });
+  const accentM = std({ color: 0xff6a2a, roughness: 0.5, emissive: 0xff5a1f, emissiveIntensity: 0.2 });
+  const foilM = std({ color: 0xc9993f, metalness: 0.9, roughness: 0.3 });
+  const add = (parent, geo, mat, x, y, z) => { const m = new THREE.Mesh(geo, mat); m.position.set(x || 0, y || 0, z || 0); parent.add(m); return m; };
+  const lathe = (pts, seg) => new THREE.LatheGeometry(pts.map(q => V2(q[0], q[1])), seg || 28);
+  const ring = (parent, r, t, y, mat) => { const m = add(parent, new THREE.TorusGeometry(r, t, 8, 28), mat || greyM, 0, y || 0, 0); m.rotation.x = Math.PI / 2; return m; };
+  // Lower torso, waist bearing, soft torso and the hard upper torso shell.
+  add(g, lathe([[0.001, 0.84], [0.15, 0.86], [0.2, 0.92], [0.205, 1.0], [0.19, 1.07], [0.17, 1.1]]), suitM).scale.z = 0.78;
+  ring(g, 0.183, 0.024, 1.085).scale.y = 0.78;
+  add(g, lathe([[0.17, 1.09], [0.2, 1.16], [0.225, 1.26], [0.24, 1.34]]), suitM).scale.z = 0.76;
+  add(g, lathe([[0.235, 1.3], [0.268, 1.38], [0.285, 1.46], [0.282, 1.53], [0.255, 1.6], [0.2, 1.645], [0.17, 1.655]]), hardM).scale.z = 0.74;
+  ring(g, 0.16, 0.03, 1.655);
+  // Helmet: dark comms cap inside a clear bubble, white visor-assembly shell, gold sun visor, two lamps.
+  const HY = 1.86;
+  add(g, new THREE.SphereGeometry(0.165, 20, 14), darkM, 0, HY, -0.01);
+  add(g, new THREE.SphereGeometry(0.238, 32, 20), glassM, 0, HY, 0).userData.noShadow = true;
+  add(g, new THREE.SphereGeometry(0.252, 32, 20, Math.PI, Math.PI, 0, Math.PI * 0.78), hardM, 0, HY, 0);        // back shell
+  add(g, new THREE.SphereGeometry(0.252, 32, 8, 0, Math.PI, 0, Math.PI * 0.26), hardM, 0, HY, 0);              // brow
+  add(g, new THREE.SphereGeometry(0.246, 32, 16, 0, Math.PI, Math.PI * 0.24, Math.PI * 0.5), visorM, 0, HY, 0); // gold visor
+  for (const sx of [-1, 1]) {
+    add(g, new THREE.CylinderGeometry(0.035, 0.035, 0.09, 12), panelM, sx * 0.19, HY + 0.09, 0.11).rotation.x = Math.PI / 2;
+    add(g, new THREE.CircleGeometry(0.028, 12), new THREE.MeshBasicMaterial({ color: 0xfff4e0 }), sx * 0.19, HY + 0.09, 0.156);
+  }
+  // Life-support backpack (PLSS) with vents, antenna and oxygen bottles.
+  add(g, rboxGeo(0.5, 0.64, 0.22, 0.06), hardM, 0, 1.34, -0.3);
+  add(g, rboxGeo(0.44, 0.12, 0.2, 0.04), panelM, 0, 1.7, -0.29);
+  for (let i = 0; i < 4; i++) add(g, new THREE.BoxGeometry(0.3, 0.022, 0.012), darkM, 0, 1.12 + i * 0.05, -0.412);
+  add(g, new THREE.CylinderGeometry(0.008, 0.008, 0.22, 6), greyM, 0.18, 1.86, -0.34);
+  const tanks = [-1, 1].map(sx => {
+    const t = new THREE.Group(); t.position.set(sx * 0.275, 1.32, -0.3); g.add(t);
+    add(t, new THREE.CylinderGeometry(0.06, 0.06, 0.4, 14), greyM); add(t, new THREE.SphereGeometry(0.06, 14, 8), greyM, 0, 0.2); add(t, new THREE.SphereGeometry(0.06, 14, 8), greyM, 0, -0.2);
+    return t;
+  });
+  // Chest display & control module with a small lit screen and knobs.
+  add(g, rboxGeo(0.3, 0.15, 0.09, 0.025), panelM, 0, 1.2, 0.2);
+  const dcm = canvasTex(64, 32); dcm.x.fillStyle = '#062018'; dcm.x.fillRect(0, 0, 64, 32); dcm.x.fillStyle = '#4cffb0'; dcm.x.font = 'bold 13px monospace'; dcm.x.fillText('O2 OK', 6, 21);
+  add(g, new THREE.PlaneGeometry(0.11, 0.055), new THREE.MeshBasicMaterial({ map: dcm.t }), -0.06, 1.215, 0.247);
+  for (const kx of [0.06, 0.105]) add(g, new THREE.CylinderGeometry(0.017, 0.017, 0.03, 10), accentM, kx, 1.2, 0.252).rotation.x = Math.PI / 2;
+  // Radiation shielding pieces (shown by the Radiation Shielding upgrade).
+  const plate = add(g, rboxGeo(0.34, 0.16, 0.02, 0.01), foilM, 0, 1.42, 0.214);
+  const pads = [-1, 1].map(sx => { const m = add(g, rboxGeo(0.2, 0.05, 0.24, 0.02), foilM, sx * 0.3, 1.63, 0); m.rotation.z = -sx * 0.35; return m; });
+  // Mission patch.
+  const pt = canvasTex(128, 128), px = pt.x;
+  px.fillStyle = '#10151f'; px.beginPath(); px.arc(64, 64, 62, 0, 7); px.fill(); px.fillStyle = '#c2552a'; px.beginPath(); px.arc(64, 70, 34, 0, 7); px.fill();
+  px.strokeStyle = '#ffd36a'; px.lineWidth = 6; px.beginPath(); px.arc(64, 64, 58, 0, 7); px.stroke(); px.fillStyle = '#fff'; px.font = 'bold 22px Arial'; px.textAlign = 'center'; px.fillText('ARES', 64, 34);
+  // Arms: shoulder bearing, upper arm with stripe, elbow, forearm, wrist bearing, glove with thumb.
+  const arm = sd => {
+    const sh = new THREE.Group(); sh.position.set(sd * 0.31, 1.53, 0); g.add(sh);
+    add(sh, new THREE.TorusGeometry(0.09, 0.022, 8, 24), greyM).rotation.y = Math.PI / 2;
+    add(sh, new THREE.SphereGeometry(0.095, 16, 12), suitM, sd * 0.02, -0.02, 0);
+    add(sh, capsuleGeo(0.088, 0.08, 0.32), suitM, 0, -0.02, 0);
+    add(sh, new THREE.CylinderGeometry(0.0905, 0.089, 0.05, 18), redM, 0, -0.12, 0);
+    if (sd < 0) { const pm = add(sh, new THREE.CircleGeometry(0.045, 20), std({ map: pt.t, roughness: 0.7 }), -0.091, -0.2, 0); pm.rotation.y = -Math.PI / 2; }
+    const el = new THREE.Group(); el.position.y = -0.31; sh.add(el);
+    ring(el, 0.078, 0.016);
+    add(el, capsuleGeo(0.08, 0.068, 0.28), suitM, 0, 0.02, 0);
+    ring(el, 0.066, 0.016, -0.25);
+    add(el, rboxGeo(0.085, 0.12, 0.06, 0.025), darkM, 0, -0.33, 0.005);
+    add(el, capsuleGeo(0.018, 0.016, 0.07, 8), darkM, -sd * 0.04, -0.29, 0.03).rotation.z = -sd * 0.6;
+    return [sh, el];
+  };
+  // Legs: thigh with stripe, knee bearing, shin, boot with a thick lugged sole.
+  const leg = sd => {
+    const hip = new THREE.Group(); hip.position.set(sd * 0.11, 0.93, 0); g.add(hip);
+    add(hip, capsuleGeo(0.11, 0.095, 0.45), suitM, 0, 0.02, 0);
+    add(hip, new THREE.CylinderGeometry(0.106, 0.104, 0.06, 18), redM, 0, -0.2, 0);
+    const kn = new THREE.Group(); kn.position.y = -0.43; hip.add(kn);
+    ring(kn, 0.097, 0.018);
+    add(kn, capsuleGeo(0.096, 0.083, 0.38), suitM, 0, 0.02, 0);
+    add(kn, rboxGeo(0.16, 0.13, 0.27, 0.05), hardM, 0, -0.39, 0.04);
+    add(kn, rboxGeo(0.17, 0.045, 0.31, 0.02), darkM, 0, -0.47, 0.045);
+    add(kn, new THREE.CylinderGeometry(0.09, 0.09, 0.035, 18), accentM, 0, -0.31, 0);
+    return [hip, kn];
+  };
+  const [lArm, lElbow] = arm(-1), [rArm, rElbow] = arm(1), [lLeg, lKnee] = leg(-1), [rLeg, rKnee] = leg(1);
+  lArm.rotation.z = -0.12; rArm.rotation.z = 0.12;
+  shadowAll(g);
+  g.userData = { j: { lArm, rArm, lElbow, rElbow, lLeg, rLeg, lKnee, rKnee }, tanks, pads, plate, accentM, phase: 0, amt: 0, air: 0, act: 0 };
+  return g;
+}
+function styleAstronaut(g) {
+  const u = g.userData;
+  u.tanks.forEach(t => t.scale.set(1 + lvl('o2') * 0.14, 1 + lvl('o2') * 0.06, 1 + lvl('o2') * 0.14));
+  u.pads.forEach(p => { p.visible = lvl('rad') >= 1; p.scale.setScalar(1 + lvl('rad') * 0.06); });
+  u.plate.visible = lvl('rad') >= 3;
+  u.accentM.emissiveIntensity = 0.2 + lvl('speed') * 0.35;
+}
+// Walk / float / work animation. moveAmt 0..1, air = off the ground, acting = using a tool.
+function animateAstronaut(g, dt, moveAmt, air, acting) {
+  const u = g.userData, j = u.j;
+  if (moveAmt > 0.02) u.phase += dt * (3.2 + moveAmt * 3.4);
+  u.amt = damp(u.amt, air ? 0 : moveAmt, 10, dt); u.air = damp(u.air, air ? 1 : 0, 8, dt); u.act = damp(u.act, acting ? 1 : 0, 8, dt);
+  const s = Math.sin(u.phase), c = Math.cos(u.phase), A = u.amt;
+  j.lLeg.rotation.x = -s * 0.75 * A - u.air * 0.35; j.rLeg.rotation.x = s * 0.75 * A - u.air * 0.15;
+  j.lKnee.rotation.x = Math.max(0, c) * A + u.air * 0.7; j.rKnee.rotation.x = Math.max(0, -c) * A + u.air * 0.4;
+  j.lArm.rotation.x = s * 0.55 * A - u.act * 1.2 - u.air * 0.3; j.rArm.rotation.x = -s * 0.55 * A - u.act * 1.2 - u.air * 0.3;
+  j.lElbow.rotation.x = j.rElbow.rotation.x = -0.25 - A * 0.35 - u.act * 0.5;
+}
+
+// ---------- pooled soft particles (dust puffs, venting gas, sparks) ----------
+class Puffs {
+  constructor(scene, n, color, additive, tex) {
+    this.items = []; this.i = 0; this.wind = V3(0, 0, 0);
+    for (let k = 0; k < n; k++) {
+      const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex || TEX.dust, color, transparent: true, opacity: 0, depthWrite: false, blending: additive ? THREE.AdditiveBlending : THREE.NormalBlending }));
+      s.visible = false; scene.add(s);
+      this.items.push({ s, v: V3(0, 0, 0), life: 0, max: 1, s0: 1, s1: 2, op: 1, drag: 0, rise: 0, spin: 0 });
+    }
+  }
+  // drag: how fast the particle slows (1/s); rise: upward drift (m/s^2) for warm, buoyant dust.
+  spawn(p, v, life, s0, s1, op, drag, rise) {
+    const it = this.items[this.i = (this.i + 1) % this.items.length];
+    it.s.position.copy(p); it.v.copy(v); it.life = it.max = life; it.s0 = s0; it.s1 = s1; it.op = op; it.s.visible = true;
+    it.drag = drag || 0; it.rise = rise || 0; it.spin = (Math.random() - 0.5) * 0.4; it.s.material.rotation = Math.random() * 6.28;
+  }
+  update(dt) {
+    for (const it of this.items) {
+      if (it.life <= 0) continue;
+      it.life -= dt;
+      if (it.life <= 0) { it.s.visible = false; continue; }
+      const t = 1 - it.life / it.max, sc = lerp(it.s0, it.s1, t);
+      if (it.drag) it.v.multiplyScalar(Math.exp(-it.drag * dt));
+      it.v.y += it.rise * dt;
+      it.s.position.addScaledVector(it.v, dt).addScaledVector(this.wind, dt * t);
+      it.s.material.rotation += it.spin * dt;
+      it.s.scale.set(sc, sc, 1); it.s.material.opacity = it.op * Math.min(1, t * 7) * (1 - smooth(0.35, 1, t));
+    }
+  }
+  clear() { for (const it of this.items) { it.life = 0; it.s.visible = false; } }
+}
+// ---------- global game state ----------
+let state = 'boot';            // boot | hangar | space | landing | mars | end
+let paused = false;            // true while a fact card / end screen is open
+const run = { o2: 100, energy: 100, rad: 0, hull: 100, fuel: 100, quest: -1, time: 0, done: 0, ended: false };
+const aud = { drill: 0, servo: 0, radio: 0, carrier: 0, burn: 0, breathT: 2, geigerRate: 0 };   // what the sound mixer should play this frame
+const input = { mx: 0, my: 0, act: false, jump: false, jumpEdge: false, sprint: false, lookX: 0, lookY: 0 };
+
+// ---------- shared UI helpers ----------
+function toast(msg, cls) {
+  const d = document.createElement('div'), L = $('log');
+  d.className = 'glass ' + (cls || ''); d.textContent = msg; L.appendChild(d);
+  while (L.children.length > 3) L.removeChild(L.firstChild);
+  setTimeout(() => d.remove(), 7500);
+}
+function banner(h, p, alarm, secs) {
+  const b = $('banner');
+  $('bannerH').textContent = h; $('bannerP').textContent = p || '';
+  b.classList.toggle('alarm', !!alarm); b.classList.remove('hidden');
+  clearTimeout(banner.t); banner.t = setTimeout(() => b.classList.add('hidden'), (secs || 4) * 1000);
+}
+let fading = false;
+function fade(cb) {                                   // fade to black, run cb, fade back in (never drops a request)
+  fading = true;
+  const f = $('fade'); f.classList.add('on');
+  setTimeout(() => { cb(); setTimeout(() => { f.classList.remove('on'); fading = false; }, 200); }, 540);
+}
+function setPrompt(text, progress) {
+  const p = $('prompt');
+  if (!text) { p.classList.add('hidden'); return; }
+  $('promptTxt').textContent = text; $('promptBar').style.width = Math.round(clamp(progress || 0, 0, 1) * 100) + '%'; p.classList.remove('hidden');
+}
+function hideGameUI() { for (const id of ['banner', 'alarm', 'prompt', 'wp', 'tele', 'align', 'card', 'end', 'touch', 'compass', 'help', 'menu', 'brief']) $(id).classList.add('hidden'); $('log').innerHTML = ''; }
+
+/* ============================================================
+   SOUND — everything is synthesized live with the Web Audio API (no files to download).
+   Mars's air is ~1% as thick as Earth's, so outdoor sounds are muffled and quiet;
+   most of what an astronaut hears travels through the suit itself.
+   ============================================================ */
+const sfx = (() => {
+  let ctx = null, master = null, noiseBuf = null, muted = false;
+  try { muted = localStorage.getItem('projectAres.mute') === '1'; } catch (e) {}
+  const loops = {};
+  function init() {                                   // must run inside a user gesture (browser autoplay rules)
+    if (ctx) { if (ctx.state === 'suspended') ctx.resume(); return; }
+    const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+    ctx = new AC();
+    master = ctx.createGain(); master.gain.value = muted ? 0 : 0.8;
+    const comp = ctx.createDynamicsCompressor(); comp.threshold.value = -16; comp.ratio.value = 4;
+    master.connect(comp); comp.connect(ctx.destination);
+    noiseBuf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
+    const d = noiseBuf.getChannelData(0); let b = 0;
+    for (let i = 0; i < d.length; i++) { const w = Math.random() * 2 - 1; b = (b + 0.02 * w) / 1.02; d[i] = w * 0.35 + b * 3.5; }   // white + brown mix
+    // Continuous layers; each has a gain we fade in and out per game state.
+    loops.hum = layer('noise', 'lowpass', 180, 0.6);                    // hangar air handling
+    loops.hum2 = layer('sawtooth', 'lowpass', 140, 0, 55);             // hangar electrical drone
+    loops.engine = layer('noise', 'lowpass', 260, 0.9);                // rocket roar (felt through the hull)
+    loops.engine2 = layer('sawtooth', 'lowpass', 120, 0, 38);
+    loops.wind = layer('noise', 'bandpass', 420, 1.6);                 // thin Martian wind
+    loops.drill = layer('sawtooth', 'bandpass', 900, 3, 110);          // drill motor whine
+    loops.servo = layer('square', 'lowpass', 500, 0.8, 70);            // door / panel motors
+    loops.radio = layer('noise', 'highpass', 2400, 0.7);               // dish static
+    loops.tone = layer('sine', 'lowpass', 4000, 0.5, 880);             // carrier tone
+  }
+  function layer(kind, ftype, freq, q, osc) {
+    const g = ctx.createGain(); g.gain.value = 0;
+    const f = ctx.createBiquadFilter(); f.type = ftype; f.frequency.value = freq; f.Q.value = q;
+    let src;
+    if (kind === 'noise') { src = ctx.createBufferSource(); src.buffer = noiseBuf; src.loop = true; src.playbackRate.value = 0.7 + Math.random() * 0.6; }
+    else { src = ctx.createOscillator(); src.type = kind; src.frequency.value = osc; }
+    src.connect(f); f.connect(g); g.connect(master); src.start();
+    return { g, f, src };
+  }
+  function set(name, vol, freq, rate) {               // smoothly steer a loop toward a volume / pitch
+    if (!ctx || !loops[name]) return;
+    const L = loops[name], t = ctx.currentTime;
+    L.g.gain.setTargetAtTime(vol, t, 0.08);
+    if (freq) L.f.frequency.setTargetAtTime(freq, t, 0.08);
+    if (rate && L.src.frequency) L.src.frequency.setTargetAtTime(rate, t, 0.05);
+  }
+  function silenceLoops() { for (const k in loops) set(k, 0); }
+  // One-shot envelope helper.
+  function env(node, t, a, peak, dur) { const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(peak, t + a); g.gain.exponentialRampToValueAtTime(0.0001, t + dur); node.connect(g); g.connect(master); return g; }
+  function tone(freq, dur, type, vol, delay, slideTo) {
+    if (!ctx || muted) return;
+    const t = ctx.currentTime + (delay || 0), o = ctx.createOscillator(); o.type = type || 'sine'; o.frequency.setValueAtTime(freq, t);
+    if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, t + dur);
+    env(o, t, 0.01, vol || 0.2, dur); o.start(t); o.stop(t + dur + 0.05);
+  }
+  function noise(dur, ftype, freq, vol, delay, q) {
+    if (!ctx || muted) return;
+    const t = ctx.currentTime + (delay || 0), s = ctx.createBufferSource(); s.buffer = noiseBuf; s.playbackRate.value = 0.8 + Math.random() * 0.4;
+    const f = ctx.createBiquadFilter(); f.type = ftype; f.frequency.value = freq; f.Q.value = q || 0.8; s.connect(f);
+    env(f, t, 0.005, vol, dur); s.start(t, Math.random() * 1.5); s.stop(t + dur + 0.05);
+  }
+  return {
+    init, set, silenceLoops, tone, noise,
+    get ready() { return !!ctx; }, get muted() { return muted; },
+    toggleMute() { muted = !muted; try { localStorage.setItem('projectAres.mute', muted ? '1' : '0'); } catch (e) {} if (master) master.gain.setTargetAtTime(muted ? 0 : 0.8, ctx.currentTime, 0.05); return muted; },
+    click() { tone(1400, 0.05, 'square', 0.05); },
+    buy() { tone(660, 0.09, 'triangle', 0.18); tone(990, 0.16, 'triangle', 0.18, 0.08); },
+    deny() { tone(180, 0.18, 'square', 0.08); },
+    launch() { noise(2.5, 'lowpass', 300, 0.9); tone(70, 2.2, 'sawtooth', 0.25, 0, 40); },
+    impact() { noise(0.5, 'lowpass', 500, 1.2); tone(55, 0.45, 'sine', 0.6, 0, 30); noise(0.18, 'highpass', 3000, 0.25, 0.02); },
+    alarm() { for (let i = 0; i < 4; i++) { tone(880, 0.18, 'square', 0.09, i * 0.42); tone(660, 0.18, 'square', 0.09, i * 0.42 + 0.21); } },
+    thump(v) { noise(0.9, 'lowpass', 160, Math.min(1.4, 0.4 + v * 0.08)); tone(45, 0.8, 'sine', Math.min(0.8, 0.2 + v * 0.05), 0, 28); },
+    step() { noise(0.1, 'lowpass', 260, 0.18); },
+    land() { noise(0.25, 'lowpass', 200, 0.4); },
+    jump() { noise(0.12, 'lowpass', 400, 0.12); },
+    breath(hard) { noise(hard ? 0.55 : 0.9, 'bandpass', hard ? 900 : 700, hard ? 0.09 : 0.05, 0, 1.4); noise(hard ? 0.5 : 0.8, 'bandpass', 500, hard ? 0.06 : 0.035, hard ? 0.7 : 1.3, 1.2); },
+    geiger() { noise(0.012, 'highpass', 4000, 0.45); },
+    chime() { [523, 659, 784, 1047].forEach((f, i) => { tone(f, 0.7, 'sine', 0.16, i * 0.11); tone(f * 2, 0.4, 'triangle', 0.04, i * 0.11); }); },
+    done() { tone(784, 0.15, 'triangle', 0.15); tone(1175, 0.3, 'triangle', 0.15, 0.12); },
+    lock() { [880, 1320, 1760].forEach((f, i) => tone(f, 0.25, 'sine', 0.14, i * 0.14)); },
+    warn() { tone(440, 0.22, 'square', 0.07); tone(440, 0.22, 'square', 0.07, 0.3); },
+    victory() { [392, 523, 659, 784, 1047, 1319].forEach((f, i) => { tone(f, 1.6 - i * 0.15, 'sine', 0.14, i * 0.16); tone(f / 2, 1.2, 'triangle', 0.05, i * 0.16); }); },
+    fail() { [392, 330, 262, 196].forEach((f, i) => tone(f, 0.8, 'triangle', 0.14, i * 0.3)); }
+  };
+})();
+// Unlock audio on the first tap / key press anywhere.
+['pointerdown', 'keydown'].forEach(ev => addEventListener(ev, () => sfx.init(), { passive: true }));
+
+/* ============================================================
+   1. HANGAR & CUSTOMIZATION
+   ============================================================ */
+const hangar = { scene: new THREE.Scene(), camera: new THREE.PerspectiveCamera(40, 1, 0.1, 400), tab: 'ship', yaw: 0.6, idle: 9, look: V3(-2.5, 7.6, 0) };
+const HG_VIEW = { ship: { look: V3(-2.5, 7.6, 0), pos: V3(-2.5, 9, 34), far: V3(-2.5, 9, 62) }, suit: { look: V3(6.5, 1.3, 2.5), pos: V3(7.2, 1.7, 7.9), far: V3(7.2, 1.7, 12) } };
+function buildHangar() {
+  const sc = hangar.scene, add = (geo, mat, x, y, z) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); sc.add(m); return m; };
+  sc.background = new THREE.Color(0x05070a); sc.fog = new THREE.Fog(0x05070a, 45, 130);
+  // Studio light boxes baked into an environment map: gives the metal and visor real reflections.
+  const envS = new THREE.Scene(), eb = (w, h, d, x, y, z, col) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshBasicMaterial({ color: col })); m.position.set(x, y, z); envS.add(m); };
+  eb(30, 1, 10, 0, 22, 0, 0xffffff); eb(1, 14, 20, -24, 8, 0, 0x9fc4ff); eb(1, 10, 16, 24, 6, 4, 0xffb27a); eb(60, 0.5, 60, 0, -6, 0, 0x1a1d22); eb(60, 30, 1, 0, 8, -30, 0x14171c);
+  sc.environment = pmrem.fromScene(envS, 0.04).texture;
+  const fl = rep(TEX.metal, 20, 20);
+  add(new THREE.PlaneGeometry(160, 160), std({ color: 0x1b1e23, metalness: 0.55, roughness: 0.42, map: fl.map, normalMap: fl.normalMap, envMapIntensity: 0.6 }), 0, 0, 0).rotation.x = -Math.PI / 2;
+  const padM = std({ color: 0x15171b, metalness: 0.4, roughness: 0.6, envMapIntensity: 0.5 }), glowM = std({ color: 0xff6a2a, emissive: 0xff5a1f, emissiveIntensity: 1.6 });
+  add(new THREE.CylinderGeometry(6, 6.3, 0.3, 48), padM, -2.5, 0.15, 0);                  // launch pad
+  add(new THREE.TorusGeometry(6.05, 0.05, 8, 64), glowM, -2.5, 0.31, 0).rotation.x = Math.PI / 2;
+  add(new THREE.CylinderGeometry(1.2, 1.3, 0.3, 32), padM, 6.5, 0.15, 2.5);               // suit pedestal
+  add(new THREE.TorusGeometry(1.22, 0.025, 8, 48), glowM, 6.5, 0.31, 2.5).rotation.x = Math.PI / 2;
+  const wl = rep(TEX.metal, 12, 5);
+  add(new THREE.BoxGeometry(90, 40, 1), std({ color: 0x23272e, metalness: 0.6, roughness: 0.55, map: wl.map, normalMap: wl.normalMap }), 0, 20, -24);
+  const stripM = new THREE.MeshBasicMaterial({ color: 0xcfe2ff });
+  for (let i = -3; i <= 3; i++) add(new THREE.BoxGeometry(0.35, 22, 0.2), stripM, i * 11, 14, -23.3);   // wall light strips
+  const trussM = std({ color: 0x4a4f58, metalness: 0.8, roughness: 0.4 });
+  for (const x of [-9.6, -8.2]) add(new THREE.BoxGeometry(0.3, 17, 0.3), trussM, x, 8.5, -3);            // service gantry
+  for (let y = 2; y <= 16; y += 3.5) add(new THREE.BoxGeometry(1.7, 0.2, 0.3), trussM, -8.9, y, -3);
+  add(new THREE.BoxGeometry(5, 0.25, 0.8), trussM, -6.6, 11.4, -3);
+  sc.add(new THREE.HemisphereLight(0x8fa8c8, 0x1a1410, 0.45));
+  const key = new THREE.SpotLight(0xffffff, 2.4, 120, 0.5, 0.6, 1);
+  key.position.set(16, 30, 22); key.target.position.set(0, 5, 0); key.castShadow = true; key.shadow.mapSize.set(1024, 1024); key.shadow.bias = -0.0005;
+  sc.add(key, key.target);
+  const rim = new THREE.DirectionalLight(0x7fb0ff, 1.3); rim.position.set(-14, 12, -16); sc.add(rim);
+  const warm = new THREE.PointLight(0xffa060, 1.2, 30); warm.position.set(10, 4, 8); sc.add(warm);
+  sc.traverse(m => { if (m.isMesh) m.receiveShadow = true; });
+  hangar.rocket = buildRocket(); hangar.rocket.position.set(-2.5, 0.3, 0); sc.add(hangar.rocket);
+  hangar.astro = buildAstronaut(); hangar.astro.position.set(6.5, 0.3, 2.5); sc.add(hangar.astro);
+  hangar.camera.position.copy(HG_VIEW.ship.pos);
+}
+function updateHangar(dt) {
+  const h = hangar, v = HG_VIEW[h.tab], narrow = innerWidth < 760, k = 1 - Math.exp(-3.5 * dt);
+  h.idle += dt; if (h.idle > 2.5) h.yaw += dt * 0.25;                       // auto-rotate when not being dragged
+  h.rocket.rotation.y = h.yaw; h.astro.rotation.y = h.yaw + 0.3;
+  h.camera.position.lerp(narrow ? v.far : v.pos, k); h.look.lerp(v.look, k); h.camera.lookAt(h.look);
+  animateAstronaut(h.astro, dt, 0, false, false);
+}
+// Upgrade shop: spend points on ship and suit stats.
+function renderUpgrades() {
+  $('hgPts').textContent = save.points; $('ptsTxt').textContent = save.points;
+  $('upList').innerHTML = Object.keys(UPG).filter(k => UPG[k].tab === hangar.tab).map(k => {
+    const u = UPG[k], l = lvl(k), max = l >= 5, cost = UP_COST[l];
+    return '<div class="up"><div class="up-i"><b>' + u.name + '</b><small>' + u.desc + ' · ' + (l ? u.fx(l) : 'base model') + '</small><div class="pips">' +
+      [0, 1, 2, 3, 4].map(i => '<i class="' + (i < l ? 'on' : '') + '"></i>').join('') + '</div></div>' +
+      '<button class="buy" data-k="' + k + '"' + (max || save.points < cost ? ' disabled' : '') + '>' + (max ? 'MAX' : cost + ' ★') + '</button></div>';
+  }).join('');
+}
+$('upList').addEventListener('click', e => {
+  const b = e.target.closest('.buy'); if (!b || b.disabled) return;
+  const k = b.dataset.k, cost = UP_COST[lvl(k)];
+  if (lvl(k) >= 5 || save.points < cost) return;
+  save.points -= cost; save.up[k]++; saveGame(); styleAll(); renderUpgrades(); sfx.buy();
+});
+document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => {
+  hangar.tab = b.dataset.tab; sfx.click();
+  document.querySelectorAll('.tabs button').forEach(o => o.classList.toggle('on', o === b));
+  renderUpgrades();
+}));
+function styleAll() {                                  // push upgrade levels onto every copy of the models
+  for (const r of [hangar.rocket, space.ship, mars.lander]) if (r) styleRocket(r);
+  for (const a of [hangar.astro, mars.astro]) if (a) styleAstronaut(a);
+}
+function enterHangar() {
+  state = 'hangar'; paused = false;
+  hideGameUI(); $('hud').classList.add('hidden'); $('hangar').classList.remove('hidden');
+  renderUpgrades(); renderCareer(); onResize();
+}
+function startMission() {
+  if (state !== 'hangar' || fading) return;
+  Object.assign(run, { o2: 100, energy: 100, rad: 0, hull: 100, fuel: 100, quest: -1, time: 0, done: 0, ended: false, storm: false, w1: false, w2: false, w3: false, info: '', landV: 99 });
+  save.career.launches++; saveGame();
+  sfx.init(); sfx.launch();
+  fade(() => {
+    $('hangar').classList.add('hidden'); $('hud').classList.remove('hidden');
+    if (IS_TOUCH) $('touch').classList.remove('hidden');
+    enterSpace();
+  });
+}
+$('launchBtn').addEventListener('click', startMission);
+function onResize() {
+  const w = innerWidth, h = innerHeight, narrow = w < 760;
+  renderer.setSize(w, h);
+  const pr = renderer.getPixelRatio(); post.setSize(Math.round(w * pr), Math.round(h * pr));
+  for (const c of [hangar.camera, space.camera, mars.camera]) { c.aspect = w / h; c.updateProjectionMatrix(); }
+  // Slide the 3D preview out from under the shop panel (right side on desktop, bottom sheet on phones).
+  hangar.camera.setViewOffset(w, h, narrow ? 0 : 170, narrow ? h * 0.2 : 0, w, h);
+}
+addEventListener('resize', onResize);
+/* ============================================================
+   2. SPACE FLIGHT -> critical failure -> emergency descent
+   ============================================================ */
+const space = { scene: new THREE.Scene(), camera: new THREE.PerspectiveCamera(55, 1, 0.5, 8000), debris: [], t: 0, step: 0, failed: false, ending: false, shake: 0, sx: 0, sy: 0, vx: 0, vy: 0, spawnT: 0, ventT: 0, teleT: 0 };
+// Irregular boulder: a sphere pushed around by noise (position-only, so seams stay closed).
+function makeRockGeo(seed) {
+  const g = new THREE.SphereGeometry(1, 12, 9), p = g.attributes.position;
+  for (let i = 0; i < p.count; i++) {
+    const x = p.getX(i), y = p.getY(i), z = p.getZ(i), k = 0.72 + fbm(x * 1.3 + seed, y * 1.3 + z * 1.7, seed, 3) * 0.6;
+    p.setXYZ(i, x * k, y * k * 0.8, z * k);
+  }
+  g.computeVertexNormals(); return g;
+}
+function buildSpace() {
+  const sc = space.scene; sc.background = new THREE.Color(0x000003);
+  // Star field.
+  const n = 2600, pos = new Float32Array(n * 3), col = new Float32Array(n * 3), v = V3();
+  for (let i = 0; i < n; i++) {
+    v.set(rand(-1, 1), rand(-1, 1), rand(-1, 1)).normalize().multiplyScalar(5000);
+    const b = Math.pow(Math.random(), 3) * 0.9 + 0.1, w = Math.random();
+    pos.set([v.x, v.y, v.z], i * 3); col.set([b * (0.8 + w * 0.2), b * 0.9, b * (1 - w * 0.2)], i * 3);
+  }
+  const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.BufferAttribute(pos, 3)); sg.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  sc.add(new THREE.Points(sg, new THREE.PointsMaterial({ size: 1.6, sizeAttenuation: false, vertexColors: true })));
+  // Mars: rust plains, dark basaltic regions (like Syrtis Major) and polar ice caps.
+  const mc = document.createElement('canvas'); mc.width = 1024; mc.height = 512;
+  const mx = mc.getContext('2d'), im = mx.createImageData(1024, 512);
+  for (let y = 0; y < 512; y++) for (let x = 0; x < 1024; x++) {
+    const u = x / 1024, w = y / 512, nn = fbm(u * 8, w * 4, 91, 6, 8), d = fbm(u * 4 + 3, w * 2, 97, 4, 4);
+    const dark = smooth(0.5, 0.64, d), cap = smooth(0.86, 0.93, Math.abs(w - 0.5) * 2 + (nn - 0.5) * 0.12), k = 0.75 + nn * 0.5, i = (y * 1024 + x) * 4;
+    im.data[i] = lerp(lerp(0.74, 0.36, dark) * k, 0.95, cap) * 255; im.data[i + 1] = lerp(lerp(0.41, 0.22, dark) * k, 0.93, cap) * 255; im.data[i + 2] = lerp(lerp(0.24, 0.16, dark) * k, 0.92, cap) * 255; im.data[i + 3] = 255;
+  }
+  mx.putImageData(im, 0, 0);
+  const mt = new THREE.CanvasTexture(mc); mt.encoding = THREE.sRGBEncoding; mt.anisotropy = MAX_ANISO;
+  space.mars = new THREE.Mesh(new THREE.SphereGeometry(300, 72, 48), std({ map: mt, roughness: 1, metalness: 0 }));
+  // Thin dusty atmosphere seen edge-on at the limb.
+  space.mars.add(new THREE.Mesh(new THREE.SphereGeometry(307, 72, 48), new THREE.ShaderMaterial({
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+    vertexShader: 'varying vec3 vN; varying vec3 vV; void main(){ vec4 mv = modelViewMatrix * vec4(position,1.0); vN = normalize(normalMatrix * normal); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }',
+    fragmentShader: 'varying vec3 vN; varying vec3 vV; void main(){ float f = pow(1.0 - max(dot(normalize(vN), normalize(vV)), 0.0), 2.6); gl_FragColor = vec4(vec3(1.0,0.62,0.4) * f * 1.3, f); }'
+  })));
+  sc.add(space.mars);
+  const sun = new THREE.DirectionalLight(0xfff4e6, 2.8); sun.position.set(0.8, 0.45, 0.6); sc.add(sun);
+  sc.add(new THREE.HemisphereLight(0x33405a, 0x1a0f0a, 0.5));
+  const sunSpr = new THREE.Sprite(new THREE.SpriteMaterial({ map: TEX.glow, color: 0xfff2dd, blending: THREE.AdditiveBlending, depthWrite: false }));
+  sunSpr.position.set(3200, 1800, 1200).multiplyScalar(1); sunSpr.scale.set(900, 900, 1); sc.add(sunSpr);
+  // Player ship: rocket pivoted about its middle, nose pointing away from the camera (-Z).
+  space.ship = buildRocket(); space.ship.position.y = -7.6;
+  const pivot = new THREE.Group(); pivot.rotation.x = -Math.PI / 2; pivot.add(space.ship);
+  space.holder = new THREE.Group(); space.holder.scale.setScalar(0.32); space.holder.add(pivot); sc.add(space.holder);
+  space.plasma = new THREE.Sprite(new THREE.SpriteMaterial({ map: TEX.glow, color: 0xff7a30, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true }));
+  space.plasma.visible = false; sc.add(space.plasma);
+  space.puffs = new Puffs(sc, 40, 0xcfe6ff, true);
+  // Speed streaks: interplanetary dust flashing past, stretched by our ~5 km/s velocity.
+  const SN = 160, sp = new Float32Array(SN * 6);
+  const sg2 = new THREE.BufferGeometry(); sg2.setAttribute('position', new THREE.BufferAttribute(sp, 3));
+  space.streaks = new THREE.LineSegments(sg2, new THREE.LineBasicMaterial({ color: 0xbfd8ff, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false }));
+  space.streaks.frustumCulled = false; space.streakData = [];
+  for (let i = 0; i < SN; i++) space.streakData.push({ x: rand(-60, 60), y: rand(-40, 40), z: rand(-420, 20) });
+  sc.add(space.streaks);
+  // Debris pool: meteoroids plus (after the failure) torn hull plating.
+  const rockG = makeRockGeo(3), rockT = rep(TEX.rock, 2, 2), rockM = std({ color: 0x9a8a80, roughness: 0.92, map: rockT.map, normalMap: rockT.normalMap });
+  const shardG = new THREE.BoxGeometry(1.6, 0.14, 1.0), shardM = std({ color: 0xb8bcc4, metalness: 0.8, roughness: 0.35 });
+  for (let i = 0; i < 40; i++) {
+    const shard = i % 3 === 2, m = new THREE.Mesh(shard ? shardG : rockG, shard ? shardM : rockM);
+    m.visible = false; sc.add(m);
+    space.debris.push({ m, shard, active: false, hit: false, r: 1, vz: 80, vx: 0, spin: V3() });
+  }
+}
+// Scripted beats of the flight, by time in seconds.
+const SPACE_EVENTS = [
+  [0.6, () => banner('TRANS-MARS CRUISE', 'Day 203 of the voyage · steer clear of the debris stream', false, 5)],
+  [13, () => {
+    const s = space; s.failed = true; s.shake = 1.3;
+    run.hull = Math.max(5, run.hull - 10);
+    $('alarm').classList.remove('hidden'); sfx.impact(); sfx.alarm();
+    banner('⚠ MASTER ALARM', 'Micrometeoroid strike — return propellant tank breached', true, 5);
+    toast('Propellant for the trip home is venting into space.', 'warn');
+    setQuest('Emergency Descent', 'Earth return is impossible. Dodge the wreckage and bring the Ares down at Jezero Crater.');
+  }],
+  [15.5, () => sfx.alarm()],
+  [18.5, () => {
+    $('alarm').classList.add('hidden');
+    banner('EMERGENCY LANDING', 'Target: Jezero Crater · 18.4°N 77.5°E · an ancient lake bed', true, 5);
+    toast('ARES LOG: No way back to Earth. If we live, we live on Mars.');
+  }],
+  [31, () => banner('ATMOSPHERIC ENTRY', 'Thermal shields taking the heat — hold together', true, 4)]
+];
+function enterSpace() {
+  const s = space; state = 'space';
+  Object.assign(s, { t: 0, step: 0, failed: false, ending: false, shake: 0, sx: 0, sy: 0, vx: 0, vy: 0, spawnT: 2, ventT: 0, teleT: 0 });
+  s.debris.forEach(d => { d.active = false; d.m.visible = false; });
+  s.puffs.clear(); s.plasma.visible = false; s.ship.userData.flame.visible = true;
+  $('tele').classList.remove('hidden'); touchButtons(null, false);
+  setQuest('Trans-Mars Cruise', 'Pilot the Ares toward Mars. Steer around debris — every hit damages the hull.');
+  setTimeout(() => { if (state === 'space') toast(IS_TOUCH ? 'Steer: drag the joystick on the left half of the screen.' : 'Steer: W A S D or the arrow keys.'); }, 1800);
+  updateHUD();
+}
+function updateSpace(dt) {
+  const s = space, thr = 1 + lvl('thrust') * 0.12, dmgK = 1 - lvl('shield') * 0.13;
+  s.t += dt;
+  while (s.step < SPACE_EVENTS.length && s.t >= SPACE_EVENTS[s.step][0]) SPACE_EVENTS[s.step++][1]();
+  // Steering (sluggish for a few seconds right after the strike).
+  const ctl = (s.failed && s.t < 16) ? 0.4 : 1;
+  s.vx = damp(s.vx, input.mx * 15 * thr * ctl, 5, dt); s.vy = damp(s.vy, input.my * 11 * thr * ctl, 5, dt);
+  s.sx = clamp(s.sx + s.vx * dt, -15, 15); s.sy = clamp(s.sy + s.vy * dt, -8.5, 8.5);
+  s.holder.position.set(s.sx, s.sy, 0); s.holder.rotation.z = -s.vx * 0.035; s.holder.rotation.x = s.vy * 0.025;
+  s.ship.userData.flame.scale.set(1, 1 + rand(-0.12, 0.12), 1);
+  // Mars swells from a disc to a horizon as we close in.
+  const e = smooth(0, 36, s.t);
+  s.mars.position.set(lerp(-170, 0, e), lerp(-40, -205, e), lerp(-1500, -400, e)); s.mars.rotation.y += dt * 0.01;
+  // Debris stream.
+  s.spawnT -= dt;
+  if (s.spawnT <= 0 && s.t < 30.5) {
+    s.spawnT = s.failed ? rand(0.28, 0.48) : rand(0.7, 1.1);
+    const d = s.debris.find(o => !o.active && (s.failed || !o.shard));
+    if (d) {
+      const aimed = Math.random() < 0.45;
+      d.active = true; d.hit = false; d.m.visible = true; d.r = d.shard ? rand(0.8, 1.3) : rand(0.9, 2.4);
+      d.m.scale.setScalar(d.r); d.m.position.set(aimed ? s.sx + rand(-2, 2) : rand(-17, 17), aimed ? s.sy + rand(-2, 2) : rand(-10, 10), -330);
+      d.vz = rand(70, 100) + (s.failed ? 22 : 0); d.vx = 0; d.spin.set(rand(-2, 2), rand(-2, 2), rand(-2, 2));
+    }
+  }
+  for (const d of s.debris) {
+    if (!d.active) continue;
+    const p = d.m.position;
+    const z0 = p.z;
+    p.z += d.vz * dt; p.x += d.vx * dt; d.m.rotation.x += d.spin.x * dt; d.m.rotation.y += d.spin.y * dt; d.m.rotation.z += d.spin.z * dt;
+    if (!d.hit && z0 < 2.8 && p.z > -2.8 && Math.hypot(p.x - s.sx, p.y - s.sy) < d.r + 1.0) {   // impact (swept, so low frame rates can't skip it)
+      d.hit = true; d.vx = (p.x >= s.sx ? 1 : -1) * 25; s.shake = 0.8;
+      run.hull = Math.max(5, run.hull - 16 * dmgK);
+      for (let i = 0; i < 6; i++) s.puffs.spawn(p, V3(rand(-9, 9), rand(-9, 9), rand(5, 20)), 0.5, 0.3, 2.4, 0.9);
+      toast('Hull impact! Integrity ' + Math.round(run.hull) + '%', 'warn'); sfx.impact();
+    }
+    if (p.z > 30) { d.active = false; d.m.visible = false; }
+  }
+  // Venting propellant after the strike.
+  if (s.failed) { s.ventT -= dt; if (s.ventT <= 0) { s.ventT = 0.05; s.puffs.spawn(V3(s.sx + 0.6, s.sy, 0.5), V3(rand(3, 7), rand(-1.5, 1.5), rand(10, 18)), 0.9, 0.3, 2.6, 0.35); } }
+  s.puffs.update(dt);
+  // Streaks: faster after the failure (steeper trajectory) and glowing orange during entry.
+  const spd = (s.failed ? 260 : 170) + clamp((s.t - 31) / 4, 0, 1) * 200, len = spd * 0.035, arr = s.streaks.geometry.attributes.position.array;
+  s.streakData.forEach((d, i) => {
+    d.z += spd * dt; if (d.z > 22) { d.z = -420; d.x = rand(-60, 60); d.y = rand(-40, 40); if (Math.hypot(d.x, d.y) < 6) d.x += 12; }
+    arr.set([d.x, d.y, d.z, d.x, d.y, d.z - len], i * 6);
+  });
+  s.streaks.geometry.attributes.position.needsUpdate = true;
+  s.streaks.material.color.setHex(s.t > 31 ? 0xffa060 : 0xbfd8ff);
+  // Entry plasma.
+  const heat = clamp((s.t - 31) / 4, 0, 1);
+  s.plasma.visible = heat > 0;
+  if (heat > 0) {
+    const sc = 6 + heat * 12 + rand(0, 1.5);
+    s.plasma.position.set(s.sx, s.sy, -1.2); s.plasma.scale.set(sc, sc, 1); s.plasma.material.opacity = heat * 0.85;
+    run.hull = Math.max(5, run.hull - 3.2 * dmgK * dt); s.shake = Math.max(s.shake, heat * 0.35);
+  }
+  // Chase camera with impact shake.
+  s.shake = Math.max(0, s.shake - dt * 1.4);
+  s.camera.position.set(s.sx * 0.45 + rand(-1, 1) * s.shake, 3.2 + s.sy * 0.45 + rand(-1, 1) * s.shake, 17);
+  s.camera.lookAt(s.sx * 0.6, s.sy * 0.6, -30);
+  s.teleT -= dt;
+  if (s.teleT <= 0) {
+    s.teleT = 0.12;
+    $('tele').innerHTML = 'HULL <b>' + Math.round(run.hull) + '%</b> · MARS <b>' + Math.round(lerp(48000, 125, Math.pow(e, 0.7))).toLocaleString() + ' km</b> · <b>' + lerp(3.4, 5.4, e).toFixed(1) + ' km/s</b>';
+  }
+  if (!s.ending && s.t > 35.5) { s.ending = true; fade(enterLanding); }
+}
+/* ============================================================
+   3. MARS — Jezero Crater world (terrain, sky, light, rocks, dust)
+   ============================================================ */
+const mars = { scene: new THREE.Scene(), camera: new THREE.PerspectiveCamera(60, 1, 0.2, 2600), colliders: [] };
+const dirFrom = (azDeg, elDeg) => { const a = azDeg * Math.PI / 180, e = elDeg * Math.PI / 180; return V3(Math.cos(e) * Math.sin(a), Math.sin(e), Math.cos(e) * Math.cos(a)); };
+const SUN_DIR = dirFrom(215, 24);                 // low afternoon Sun
+const EARTH_AZ = 190, EARTH_EL = 46;              // Earth is an inner planet: always within ~47° of the Sun in Mars's sky
+const EARTH_DIR = dirFrom(EARTH_AZ, EARTH_EL);
+const SITE = { pad: { x: 0, z: 0 }, drill: { x: 96, z: -42 }, tube: { x: -72, z: -108 }, dome: { x: -62, z: 52 }, comm: { x: 58, z: 112 } };
+const TUBE = { len: 34, R: 6.5, yaw: Math.atan2(-72, -108) };       // the tube runs on away from the landing pad
+const TER = { size: 720, seg: 224, H: null }, FLATS = [];
+
+// Natural height before any site levelling.
+function rawH(x, z) {
+  let h = fbm(x * 0.006 + 50, z * 0.006 + 50, 3, 4) * 26 - 13;                                   // broad swells
+  h += fbm(x * 0.03, z * 0.03, 7, 3) * 3 - 1.5;                                                  // hummocks
+  h += Math.sin((x * 0.9 + z * 0.45) * 0.35 + fbm(x * 0.02, z * 0.02, 11, 2) * 6) * 0.12;        // wind ripples
+  h += smooth(235, 340, Math.hypot(x, z)) * 75 * (0.7 + 0.6 * fbm(x * 0.01 + 9, z * 0.01, 21, 3)); // crater rim
+  h += smooth(0, 20, -x - 170 + fbm(z * 0.012, x * 0.004, 5, 3) * 50 - 25) * 22;                 // western delta scarp
+  const cx = x - SITE.comm.x, cz = z - SITE.comm.z;
+  return h + 15 * Math.exp(-(cx * cx + cz * cz) / 2600);                                         // hill for the comm array
+}
+function addFlat(x, z, r, h) { FLATS.push({ x, z, r, h: h === undefined ? rawH(x, z) : h }); }
+function terrainH(x, z) {
+  let h = rawH(x, z);
+  for (const f of FLATS) { const d = Math.hypot(x - f.x, z - f.z); if (d < f.r) h = lerp(f.h, h, smooth(f.r * 0.6, f.r, d)); }
+  return h;
+}
+// Ground height anywhere: bilinear lookup in the same grid the mesh is built from.
+function heightAt(x, z) {
+  const n = TER.seg, w = n + 1, H = TER.H;
+  const fx = clamp((x / TER.size + 0.5) * n, 0, n - 0.001), fz = clamp((z / TER.size + 0.5) * n, 0, n - 0.001), ix = fx | 0, iz = fz | 0, tx = fx - ix, tz = fz - iz;
+  return lerp(lerp(H[iz * w + ix], H[iz * w + ix + 1], tx), lerp(H[(iz + 1) * w + ix], H[(iz + 1) * w + ix + 1], tx), tz);
+}
+const nearSite = (x, z) => FLATS.some(f => Math.hypot(x - f.x, z - f.z) < f.r);
+// Linear colour -> what the screen shows (three r128 ACES filmic at exposure 1, then sRGB).
+function toOutput(c) {
+  const r = c.r / 0.6, g = c.g / 0.6, b = c.b / 0.6;
+  const x = 0.59719 * r + 0.35458 * g + 0.04823 * b, y = 0.076 * r + 0.90834 * g + 0.01566 * b, z = 0.0284 * r + 0.13383 * g + 0.83777 * b;
+  const f = v => (v * (v + 0.0245786) - 0.000090537) / (v * (0.983729 * v + 0.432951) + 0.238081), X = f(x), Y = f(y), Z = f(z);
+  const s = v => { v = clamp(v, 0, 1); return v <= 0.0031308 ? v * 12.92 : 1.055 * Math.pow(v, 1 / 2.4) - 0.055; };
+  return new THREE.Color(s(1.60475 * X - 0.53108 * Y - 0.07367 * Z), s(-0.10208 * X + 1.10813 * Y - 0.00605 * Z), s(-0.00327 * X - 0.07276 * Y + 1.07602 * Z));
+}
+
+function buildMarsWorld() {
+  const sc = mars.scene;
+  // --- level building sites ---
+  addFlat(0, 0, 40); addFlat(SITE.drill.x, SITE.drill.z, 14); addFlat(SITE.dome.x, SITE.dome.z, 17); addFlat(SITE.comm.x, SITE.comm.z, 10);
+  const tdx = Math.sin(TUBE.yaw), tdz = Math.cos(TUBE.yaw), th = rawH(SITE.tube.x, SITE.tube.z);
+  for (const k of [-6, 6, 18, 30, 40]) addFlat(SITE.tube.x + tdx * k, SITE.tube.z + tdz * k, 14, th);
+  // --- terrain mesh: height field + large-scale colour variation to break up texture tiling ---
+  const n = TER.seg, geo = new THREE.PlaneGeometry(TER.size, TER.size, n, n); geo.rotateX(-Math.PI / 2);
+  const p = geo.attributes.position, col = new Float32Array(p.count * 3); TER.H = new Float32Array(p.count);
+  for (let i = 0; i < p.count; i++) {
+    const x = p.getX(i), z = p.getZ(i), h = terrainH(x, z);
+    TER.H[i] = h; p.setY(i, h);
+    const k = 0.82 + fbm(x * 0.012 + 7, z * 0.012, 41, 4) * 0.4, d = smooth(0.55, 0.72, fbm(x * 0.02, z * 0.02 + 30, 43, 3));   // d = dark basalt sand
+    col[i * 3] = k * lerp(1, 0.62, d); col[i * 3 + 1] = k * lerp(1, 0.6, d); col[i * 3 + 2] = k * lerp(1, 0.66, d);
+  }
+  geo.computeVertexNormals();
+  const nrm = geo.attributes.normal;                                    // steep ground: darker, rockier, less dust
+  for (let i = 0; i < p.count; i++) { const st = smooth(0.95, 0.72, nrm.getY(i)), k = lerp(1, 0.7, st); col[i * 3] *= k; col[i * 3 + 1] *= k * 0.97; col[i * 3 + 2] *= k * 0.95; }
+  geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  const gt = rep(TEX.ground, 80, 80);
+  const ground = new THREE.Mesh(geo, std({ map: gt.map, normalMap: gt.normalMap, normalScale: new THREE.Vector2(1.2, 1.2), roughness: 0.96, metalness: 0, vertexColors: true }));
+  ground.receiveShadow = true; sc.add(ground);
+  // Anti-tiling: blend the texture with a rotated, offset copy of itself under a 90 m-scale noise mask.
+  ground.material.customProgramCacheKey = () => 'ares-terrain';
+  ground.material.onBeforeCompile = sh => {
+    sh.uniforms.uMacro = { value: TEX.macro };
+    sh.fragmentShader = sh.fragmentShader
+      .replace('#include <map_pars_fragment>', '#include <map_pars_fragment>\nuniform sampler2D uMacro;\n' +
+        'vec2 terB(vec2 uv){ return mat2(0.79864, 0.60181, -0.60181, 0.79864) * uv * 0.83 + vec2(0.37, 0.71); }\n' +
+        'float terM(){ return smoothstep(0.36, 0.64, texture2D(uMacro, vUv * 0.0125).r); }')
+      .replace('#include <map_fragment>', 'vec4 texelColor = mapTexelToLinear(mix(texture2D(map, vUv), texture2D(map, terB(vUv)), terM()));\ndiffuseColor *= texelColor;')
+      .replace('vec3 mapN = texture2D( normalMap, vUv ).xyz * 2.0 - 1.0;',
+        'vec3 mapA = texture2D( normalMap, vUv ).xyz * 2.0 - 1.0; vec3 mapB = texture2D( normalMap, terB(vUv) ).xyz * 2.0 - 1.0;\n' +
+        'mapB.xy = mat2(0.79864, -0.60181, 0.60181, 0.79864) * mapB.xy; vec3 mapN = normalize(mix(mapA, mapB, terM()));');
+  };
+
+  // --- sky: butterscotch dust haze, with the blue forward-scatter halo Mars's fine dust makes around the Sun ---
+  const HOR = new THREE.Color(0.62, 0.30, 0.14), ZEN = new THREE.Color(0.24, 0.11, 0.05);   // linear; tone-mapped to butterscotch
+  const skyM = new THREE.ShaderMaterial({
+    side: THREE.BackSide, depthWrite: false, uniforms: { sunDir: { value: SUN_DIR }, uTime: { value: 0 } },
+    vertexShader: 'varying vec3 vDir; void main(){ vDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+    fragmentShader: [
+      'uniform vec3 sunDir; uniform float uTime; varying vec3 vDir;',
+      'float h2(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }',
+      'float n2(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(h2(i), h2(i + vec2(1.0, 0.0)), f.x), mix(h2(i + vec2(0.0, 1.0)), h2(i + vec2(1.0, 1.0)), f.x), f.y); }',
+      'float fb(vec2 p){ float s = 0.0, a = 0.5; for (int i = 0; i < 5; i++){ s += a * n2(p); p = p * 2.03 + 1.7; a *= 0.5; } return s; }',
+      'void main(){',
+      '  vec3 d = normalize(vDir);',
+      '  vec3 zen = vec3(0.24, 0.11, 0.05), hor = vec3(0.62, 0.30, 0.14);',
+      '  vec3 c = mix(hor, zen, pow(smoothstep(-0.05, 0.9, d.y), 0.55));',
+      '  float s = max(dot(d, sunDir), 0.0);',
+      '  c = mix(c, vec3(0.30, 0.48, 0.85), pow(s, 14.0) * 0.6);',                    // blue halo (fine dust scatters blue forward)
+      '  c += vec3(0.55, 0.75, 1.0) * pow(s, 60.0) * 0.9;',                            // blue-white aureole
+      '  c += vec3(1.0, 0.97, 0.92) * (pow(s, 1500.0) * 6.0 + smoothstep(0.99990, 0.99996, s) * 30.0);',   // small solar disc (0.35° wide from Mars)
+      '  if (d.y > 0.0) {',                                                         // thin water-ice clouds high in the sky
+      '    vec2 cp = d.xz / (d.y + 0.12) * 1.4 + vec2(uTime * 0.006, uTime * 0.002);',
+      '    float cl = smoothstep(0.52, 0.86, fb(cp) * 0.75 + fb(cp * 3.1) * 0.25) * smoothstep(0.03, 0.3, d.y) * 0.32;',
+      '    c = mix(c, vec3(0.78, 0.70, 0.66) * (0.85 + 0.6 * pow(s, 3.0)), cl);',
+      '  }',
+      '  c = mix(c, hor * 0.9, smoothstep(0.0, -0.15, d.y));',
+      '  gl_FragColor = vec4(c, 1.0);',
+      '  #include <tonemapping_fragment>',
+      '  #include <encodings_fragment>',
+      '}'].join('\n')
+  });
+  mars.sky = new THREE.Mesh(new THREE.SphereGeometry(2000, 32, 20), skyM); mars.sky.frustumCulled = false; sc.add(mars.sky);
+  const envS = new THREE.Scene(); envS.add(new THREE.Mesh(new THREE.SphereGeometry(50, 32, 20), skyM));
+  sc.environment = pmrem.fromScene(envS).texture;                     // sky-lit reflections + ambient
+  // r128 applies fog after tone mapping, so the fog colour must be the *displayed* horizon colour.
+  const fogLin = HOR.clone().lerp(ZEN, 0.072);
+  mars.fogColors = { linear: fogLin, output: toOutput(fogLin) };       // fog is applied after tone mapping in Low quality, before it in High
+  sc.fog = new THREE.FogExp2((QUALITY === 'high' ? fogLin : mars.fogColors.output).getHex(), 0.0034);   // airborne dust
+
+  // --- light: one hard Sun with soft shadows, plus warm bounce ---
+  const sun = mars.sun = new THREE.DirectionalLight(0xffe4c8, 2.5);
+  sun.castShadow = true; sun.shadow.mapSize.set(IS_TOUCH ? 1024 : 2048, IS_TOUCH ? 1024 : 2048);
+  const cam = sun.shadow.camera; cam.left = cam.bottom = -60; cam.right = cam.top = 60; cam.near = 1; cam.far = 420; cam.updateProjectionMatrix();
+  sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.06;
+  sc.add(sun, sun.target);
+  mars.hemi = new THREE.HemisphereLight(0xd9a070, 0x5a3520, 0.3); sc.add(mars.hemi);
+
+  // --- rocks: two instanced boulder shapes scattered over the plain ---
+  const rt = rep(TEX.rock, 2, 2), rockM = std({ map: rt.map, normalMap: rt.normalMap, roughness: 0.93, color: 0xcdaa90 }), d = new THREE.Object3D();
+  for (let g = 0; g < 2; g++) {
+    const im = new THREE.InstancedMesh(makeRockGeo(11 + g * 7), rockM, 230);
+    im.castShadow = im.receiveShadow = true; im.frustumCulled = false;
+    for (let i = 0; i < 230; i++) {
+      let x, z, tries = 0;
+      do { const a = rand(0, Math.PI * 2), r = Math.sqrt(Math.random()) * 250; x = Math.cos(a) * r; z = Math.sin(a) * r; } while (nearSite(x, z) && ++tries < 30);
+      const big = i < 9, s = big ? rand(2.2, 4.5) : 0.15 + Math.pow(Math.random(), 2.5) * 1.5;
+      d.position.set(x, heightAt(x, z) - s * 0.25, z); d.rotation.set(rand(-0.3, 0.3), rand(0, 6.28), rand(-0.3, 0.3));
+      d.scale.set(s * rand(0.8, 1.3), s * rand(0.6, 1), s * rand(0.8, 1.3)); d.updateMatrix(); im.setMatrixAt(i, d.matrix);
+      if (big && !nearSite(x, z)) mars.colliders.push({ x, z, r: s * 0.95 });
+    }
+    sc.add(im);
+  }
+  // --- drifting dust motes that stay wrapped around the camera ---
+  const dn = 450, dp = new Float32Array(dn * 3);
+  for (let i = 0; i < dn; i++) dp.set([rand(-30, 30), rand(0, 18), rand(-30, 30)], i * 3);
+  const dg = new THREE.BufferGeometry(); dg.setAttribute('position', new THREE.BufferAttribute(dp, 3));
+  mars.motes = new THREE.Points(dg, new THREE.PointsMaterial({ map: TEX.dust, size: 0.3, color: 0xe6b98a, transparent: true, opacity: 0.4, depthWrite: false }));
+  mars.motes.frustumCulled = false; sc.add(mars.motes);
+  mars.puffs = new Puffs(sc, 60, 0xc89868, false);
+  mars.smoke = new Puffs(sc, 320, 0x946646, false, TEX.smoke);      // thick landing plume
+  mars.smoke.wind.set(1.6, 0.15, 0.8);
+  // --- quest beacon (light pillar over the current objective) ---
+  mars.beacon = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, 140, 12, 1, true), new THREE.MeshBasicMaterial({ color: 0xff7a3c, transparent: true, opacity: 0.22, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false }));
+  mars.beacon.visible = false; sc.add(mars.beacon);
+  // --- Earth and the Moon as seen from Mars (shown while aligning the dish) ---
+  const star = (col, size, off) => { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: TEX.glow, color: col, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })); s.position.copy(EARTH_DIR).multiplyScalar(1500).add(off); s.scale.set(size, size, 1); s.visible = false; sc.add(s); return s; };
+  mars.earth = [star(0x9fc8ff, 46, V3(0, 0, 0)), star(0xdddddd, 16, V3(34, 14, 0))];
+  // --- actors ---
+  mars.lander = buildRocket(); sc.add(mars.lander);
+  mars.landerLight = new THREE.PointLight(0xffc890, 0, 40); sc.add(mars.landerLight);
+  mars.astro = buildAstronaut(); sc.add(mars.astro);
+  buildDetails(sc);
+}
+// Dust motes drift with the wind and wrap inside a 60 m box centred on the camera.
+
+/* ---------- world details: gravel, boot prints, scorch mark, dust devils, Phobos, helmet lamp ---------- */
+const GRAVEL = { cell: 2, half: 12, per: 3 };
+function buildDetails(sc) {
+  // Gravel: real 3D pebbles in a 48 m square that follows the player. Each 2 m cell's stones come from a hash
+  // of the cell's coordinates, so they stay fixed in the world while you walk through them.
+  const gg = new THREE.IcosahedronGeometry(1, 1), gp = gg.attributes.position;
+  for (let i = 0; i < gp.count; i++) { const x = gp.getX(i), y = gp.getY(i), z = gp.getZ(i), k = 0.75 + vnoise(x * 2 + 5, z * 2 + y * 3, 9) * 0.5; gp.setXYZ(i, x * k, y * k * 0.7, z * k); }
+  gg.computeVertexNormals();
+  const rt = rep(TEX.rock, 1, 1), n = (GRAVEL.half * 2) ** 2 * GRAVEL.per;
+  const im = new THREE.InstancedMesh(gg, std({ map: rt.map, normalMap: rt.normalMap, roughness: 0.9, color: 0xffffff }), n);
+  im.castShadow = im.receiveShadow = true; im.frustumCulled = false; sc.add(im);
+  for (let i = 0; i < n; i++) im.setColorAt(i, new THREE.Color(1, 1, 1));   // (creates the colour buffer: must happen while count = n)
+  im.count = 0;
+  mars.gravel = { im, cx: 1e9, cz: 1e9 };
+
+  // Boot prints: a pool of flat decals pressed into the dust, reused oldest-first.
+  const c = document.createElement('canvas'); c.width = 64; c.height = 128;
+  const x = c.getContext('2d');
+  x.fillStyle = 'rgba(40,20,10,0.55)'; x.beginPath(); x.ellipse(32, 38, 22, 34, 0, 0, Math.PI * 2); x.ellipse(32, 98, 18, 24, 0, 0, Math.PI * 2); x.fill();
+  x.globalCompositeOperation = 'destination-out'; x.fillStyle = 'rgba(0,0,0,0.6)';
+  for (let yy = 10; yy < 122; yy += 9) x.fillRect(8, yy, 48, 3.5);                                   // tread lugs
+  const ft = new THREE.CanvasTexture(c); ft.encoding = THREE.sRGBEncoding;
+  const fm = std({ map: ft, transparent: true, depthWrite: false, roughness: 1, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+  const fg = new THREE.PlaneGeometry(0.17, 0.34); fg.rotateX(-Math.PI / 2); fg.rotateY(Math.PI);   // toe toward +Z, like the astronaut
+  mars.prints = { list: [], i: 0 };
+  for (let i = 0; i < 220; i++) { const m = new THREE.Mesh(fg, fm); m.visible = false; m.receiveShadow = true; sc.add(m); mars.prints.list.push(m); }
+
+  // Scorch mark blasted into the ground by the landing engine.
+  const sc2 = document.createElement('canvas'); sc2.width = sc2.height = 256;
+  const y2 = sc2.getContext('2d'), gr = y2.createRadialGradient(128, 128, 8, 128, 128, 128);
+  gr.addColorStop(0, 'rgba(12,6,4,0.85)'); gr.addColorStop(0.35, 'rgba(25,12,6,0.6)'); gr.addColorStop(1, 'rgba(40,20,10,0)');
+  y2.fillStyle = gr; y2.fillRect(0, 0, 256, 256);
+  y2.strokeStyle = 'rgba(15,8,5,0.25)';
+  for (let i = 0; i < 70; i++) { const a = Math.random() * Math.PI * 2, r0 = 30 + Math.random() * 30, r1 = 80 + Math.random() * 46; y2.lineWidth = 1 + Math.random() * 4; y2.beginPath(); y2.moveTo(128 + Math.cos(a) * r0, 128 + Math.sin(a) * r0); y2.lineTo(128 + Math.cos(a) * r1, 128 + Math.sin(a) * r1); y2.stroke(); }
+  const st = new THREE.CanvasTexture(sc2); st.encoding = THREE.sRGBEncoding;
+  mars.scorch = new THREE.Mesh(new THREE.PlaneGeometry(22, 22).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ map: st, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 }));
+  mars.scorch.visible = false; sc.add(mars.scorch);
+
+  // Dust devils: tall, twisting, semi-transparent columns wandering across the crater floor (common on Mars).
+  const NOISE = 'float h2(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }\n' +
+    'float n2(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(h2(i), h2(i + vec2(1.0, 0.0)), f.x), mix(h2(i + vec2(0.0, 1.0)), h2(i + vec2(1.0, 1.0)), f.x), f.y); }\n' +
+    'float fb(vec2 p){ float s = 0.0, a = 0.5; for (int i = 0; i < 4; i++){ s += a * n2(p); p = p * 2.03 + 1.7; a *= 0.5; } return s; }\n';
+  const devilM = new THREE.ShaderMaterial({
+    transparent: true, depthWrite: false, side: THREE.DoubleSide, fog: true,
+    uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, { uTime: { value: 0 }, uSeed: { value: 0 }, uColor: { value: new THREE.Color(0.5, 0.29, 0.16) } }]),
+    vertexShader: 'uniform float uTime, uSeed; varying vec2 vUv;\n#include <fog_pars_vertex>\nvoid main(){ vUv = uv; vec3 p = position; float h = uv.y;\n' +
+      ' p.x += sin(uTime * 0.6 + uSeed + h * 3.5) * h * h * 9.0; p.z += cos(uTime * 0.45 + uSeed * 2.0 + h * 2.7) * h * h * 7.0;\n' +
+      ' vec4 mvPosition = modelViewMatrix * vec4(p, 1.0); gl_Position = projectionMatrix * mvPosition;\n#include <fog_vertex>\n}',
+    fragmentShader: 'uniform float uTime, uSeed; uniform vec3 uColor; varying vec2 vUv;\n#include <fog_pars_fragment>\n' + NOISE +
+      'float sw(float x){ vec2 q = vec2(x * 7.0 + uTime * 2.2 + uSeed - vUv.y * 9.0, vUv.y * 6.0 - uTime * 1.3); return fb(q); }\n' +
+      'void main(){ float n = mix(sw(vUv.x), sw(vUv.x - 1.0), smoothstep(0.85, 1.0, vUv.x));\n' +
+      ' float a = smoothstep(0.42, 0.78, n) * smoothstep(0.0, 0.06, vUv.y) * (1.0 - smoothstep(0.45, 1.0, vUv.y)) * 0.55;\n' +
+      ' gl_FragColor = vec4(uColor * (0.8 + n * 0.5), a);\n#include <tonemapping_fragment>\n#include <encodings_fragment>\n#include <fog_fragment>\n}'
+  });
+  const dg = new THREE.CylinderGeometry(9, 1.8, 95, 28, 18, true); dg.translate(0, 47.5, 0);
+  mars.devils = [0, 1, 2].map(i => { const m = new THREE.Mesh(dg, devilM.clone()); m.material.uniforms.uSeed.value = i * 4.7; m.frustumCulled = false; m.userData = { a: i * 2.1, r: 150 + i * 35, sp: 0.01 + i * 0.004 }; sc.add(m); return m; });
+
+  // Phobos: Mars's larger moon, a lumpy 22 km rock that looks about a third the width of our Moon from the surface.
+  const pg = makeRockGeo(41);
+  mars.phobos = new THREE.Mesh(pg, std({ color: 0x6a625c, roughness: 1, fog: false }));
+  mars.phobos.scale.set(6.5, 5, 5.5); mars.phobos.userData.az = 250; sc.add(mars.phobos);
+  mars.phobos.position.copy(dirFrom(250, 28)).multiplyScalar(1700); mars.clock = 0;
+  mars.amb = 1; mars.ambSet = 1; mars.exposure = 1;
+  buildMarker();
+
+  // Helmet lamp: switches on in the dark lava tube.
+  const A = mars.astro;
+  A.userData.lamp = new THREE.SpotLight(0xfff1dc, 0, 30, 0.5, 0.45, 1.5);
+  A.userData.lamp.position.set(0, 1.92, 0.15); A.userData.lamp.target.position.set(0, 1.2, 8);
+  A.add(A.userData.lamp, A.userData.lamp.target);
+  A.userData.lampGlow = new THREE.Mesh(new THREE.SphereGeometry(0.035, 8, 6), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+  A.userData.lampGlow.position.set(0.17, 1.93, 0.17); A.userData.lampGlow.visible = false; A.add(A.userData.lampGlow);
+}
+const _d = new THREE.Object3D(), _q = new THREE.Quaternion(), _n = new THREE.Vector3(), _c = new THREE.Color();
+function terrainNormal(x, z, out) { const e = 0.4; return out.set(heightAt(x - e, z) - heightAt(x + e, z), 2 * e, heightAt(x, z - e) - heightAt(x, z + e)).normalize(); }
+function updateGravel(force) {
+  const G = mars.gravel, cs = GRAVEL.cell, cx = Math.floor(player.pos.x / cs), cz = Math.floor(player.pos.z / cs);
+  if (!force && cx === G.cx && cz === G.cz) return;
+  G.cx = cx; G.cz = cz;
+  const im = G.im, D = Q.dome.pos; let i = 0;
+  for (let gx = cx - GRAVEL.half; gx < cx + GRAVEL.half; gx++) for (let gz = cz - GRAVEL.half; gz < cz + GRAVEL.half; gz++) for (let k = 0; k < GRAVEL.per; k++) {
+    const x = (gx + hash2(gx, gz, 100 + k)) * cs, z = (gz + hash2(gx, gz, 200 + k)) * cs;
+    if (Math.hypot(x - D.x, z - D.z) < 9.6) continue;                                      // no stones on the greenhouse floor
+    const sz = 0.025 + Math.pow(hash2(gx, gz, 300 + k), 4) * 0.2;
+    _d.position.set(x, heightAt(x, z) - sz * 0.25, z);
+    _d.rotation.set((hash2(gx, gz, 400 + k) - 0.5) * 0.6, hash2(gx, gz, 500 + k) * 6.28, 0);
+    _d.scale.set(sz * (0.8 + hash2(gx, gz, 600 + k) * 0.6), sz, sz * (0.8 + hash2(gx, gz, 700 + k) * 0.6)); _d.updateMatrix();
+    im.setMatrixAt(i, _d.matrix);
+    const tone = hash2(gx, gz, 800 + k); im.setColorAt(i, _c.setRGB(lerp(0.55, 1.0, tone), lerp(0.5, 0.82, tone), lerp(0.48, 0.72, tone)));
+    i++;
+  }
+  im.count = i; im.instanceMatrix.needsUpdate = true; if (im.instanceColor) im.instanceColor.needsUpdate = true;
+}
+function stampPrint(pos, yaw, side) {
+  const P = mars.prints, m = P.list[P.i = (P.i + 1) % P.list.length];
+  const x = pos.x + Math.cos(yaw) * side * 0.13, z = pos.z - Math.sin(yaw) * side * 0.13;
+  m.position.set(x, heightAt(x, z) + 0.015, z);
+  terrainNormal(x, z, _n); _q.setFromUnitVectors(UP, _n);
+  m.quaternion.setFromAxisAngle(UP, yaw).premultiply(_q); m.visible = true;
+}
+function clearPrints() { mars.prints.list.forEach(m => m.visible = false); }
+// Sky and far scenery (also runs during the landing).
+function updateSky(dt) {
+  mars.clock += dt; const t = mars.clock;
+  for (const d of mars.devils) {                                                      // wander slowly around the crater
+    const u = d.userData; u.a += u.sp * dt;
+    const x = Math.cos(u.a) * u.r + Math.sin(u.a * 3.1) * 25, z = Math.sin(u.a) * u.r;
+    d.position.set(x, heightAt(x, z) - 1, z); d.material.uniforms.uTime.value = t;
+  }
+  const ph = mars.phobos; ph.userData.az += dt * 0.04;                                 // Phobos drifts west to east
+  ph.position.copy(mars.camera.position).addScaledVector(dirFrom(ph.userData.az, 28 + Math.sin(ph.userData.az * 0.01) * 4), 1700);
+  ph.rotation.y += dt * 0.02;
+  mars.sky.material.uniforms.uTime.value = t;
+}
+function updateDetails(dt) {
+  updateGravel(false); updateSky(dt);
+  // Inside the tube the open sky is hidden, so ambient sky light fades out and exposure opens up (eye adaptation).
+  const amb = mars.amb = damp(mars.amb, Q.tube.inside ? 0.06 : 1, 2.5, dt);
+  if (Math.abs(amb - mars.ambSet) > 0.004) { mars.ambSet = amb; for (const m of mars.stdMats) m.envMapIntensity = amb; mars.hemi.intensity = 0.3 * amb; }
+  mars.exposure = lerp(1.0, 1.45, (1 - amb) / 0.94);
+  const A = mars.astro.userData, dark = Q.tube.inside;
+  A.lamp.intensity = damp(A.lamp.intensity, dark ? 1.6 : 0, 6, dt); A.lampGlow.visible = dark;
+}
+function updateMotes(dt) {
+  const a = mars.motes.geometry.attributes.position, arr = a.array, c = mars.camera.position;
+  for (let i = 0; i < arr.length; i += 3) {
+    arr[i] += 1.6 * dt; arr[i + 1] += Math.sin(i + run.time) * 0.1 * dt; arr[i + 2] += 0.7 * dt;
+    arr[i] = c.x + ((((arr[i] - c.x + 30) % 60) + 60) % 60) - 30;
+    arr[i + 2] = c.z + ((((arr[i + 2] - c.z + 30) % 60) + 60) % 60) - 30;
+    arr[i + 1] = c.y - 6 + ((((arr[i + 1] - c.y + 6) % 20) + 20) % 20);
+  }
+  a.needsUpdate = true;
+}
+/* ---------- quest hardware: solar arrays, ice drill, lava tube, green dome, comm dish ---------- */
+const Q = {};
+const UP = V3(0, 1, 0);
+function buildProps() {
+  const sc = mars.scene;
+  const add = (parent, geo, mat, x, y, z) => { const m = new THREE.Mesh(geo, mat); m.position.set(x || 0, y || 0, z || 0); parent.add(m); return m; };
+  const steel = std({ color: 0x9aa0a8, metalness: 0.85, roughness: 0.35 }), dark = std({ color: 0x2a2d33, metalness: 0.6, roughness: 0.5 });
+  const white = std({ color: 0xe6e6e2, metalness: 0.2, roughness: 0.55 }), orange = std({ color: 0xff6a2a, roughness: 0.5, emissive: 0xff5a1f, emissiveIntensity: 0.5 });
+  const site = s => { const g = new THREE.Group(); g.position.set(s.x, heightAt(s.x, s.z), s.z); sc.add(g); return g; };
+  const lamp = (parent, x, y, z) => add(parent, new THREE.SphereGeometry(0.09, 10, 8), new THREE.MeshBasicMaterial({ color: 0xff3020 }), x, y, z);
+  const world = (g, x, y, z) => { g.updateMatrixWorld(true); return g.localToWorld(V3(x, y, z)); };
+
+  // --- Quest 1: three fan-shaped "UltraFlex" solar arrays (the design NASA flew on InSight) ---
+  const sol = rep(TEX.solar, 1, 1), solarM = std({ map: sol.map, normalMap: sol.normalMap, metalness: 0.5, roughness: 0.22, side: THREE.DoubleSide });
+  const wedgeG = new THREE.CircleGeometry(1.2, 3, 0, Math.PI / 5 + 0.02), spokeG = new THREE.BoxGeometry(1.2, 0.03, 0.025);
+  Q.panels = [[22, 9], [-19, 15], [5, -25]].map(p => {
+    const g = new THREE.Group(); g.position.set(p[0], heightAt(p[0], p[1]), p[1]); g.rotation.y = Math.atan2(SUN_DIR.x, SUN_DIR.z); sc.add(g);
+    add(g, rboxGeo(1.7, 0.42, 1.0, 0.06), white, 0, 0.21, 0);                                     // stowage crate
+    for (const sx of [-0.75, 0.75]) add(g, new THREE.BoxGeometry(0.06, 0.08, 1.04), dark, sx, 0.42, 0);
+    add(g, new THREE.BoxGeometry(0.34, 0.16, 0.02), orange, 0, 0.22, 0.51);
+    const mast = add(g, new THREE.CylinderGeometry(0.06, 0.08, 2.2, 12), steel), head = new THREE.Group(); g.add(head);
+    add(head, new THREE.BoxGeometry(2.7, 0.08, 0.1), steel);
+    const fans = [-1, 1].map(sd => {
+      const f = new THREE.Group(); f.rotation.x = -Math.PI / 2; head.add(f);
+      const wedges = [];
+      for (let i = 0; i < 10; i++) { const w = new THREE.Group(); f.add(w); add(w, wedgeG, solarM); add(w, spokeG, steel, 0.6, 0, 0.016); wedges.push(w); }
+      add(f, new THREE.CylinderGeometry(0.1, 0.1, 0.12, 16), dark).rotation.x = Math.PI / 2;
+      f.userData = { sd, wedges }; return f;
+    });
+    mars.colliders.push({ x: p[0], z: p[1], r: 1.1 });
+    return { g, mast, head, fans, t: 0, hold: 0, done: false, pos: V3(p[0], 0, p[1]) };
+  });
+
+  // --- Quest 2: ISRU drill rig (braced derrick, moving top-drive motor, auger) with a water tank ---
+  const dg = site(SITE.drill), TOP = 5.3;
+  add(dg, rboxGeo(3.0, 0.3, 2.6, 0.08), dark, 0, 0.15, 0);
+  const P0 = [[-0.6, -0.6], [0.6, -0.6], [0.6, 0.6], [-0.6, 0.6]].map(q => V3(q[0], 0.3, q[1])), P1 = P0.map(q => V3(q.x * 0.55, TOP, q.z * 0.55));
+  const onPost = (i, y) => P0[i].clone().lerp(P1[i], (y - 0.3) / (TOP - 0.3));
+  for (let i = 0; i < 4; i++) placeStrut(add(dg, strutGeo(P0[i], P1[i], 0.06, 8), steel), P0[i], P1[i]);
+  for (let lv = 0; lv < 4; lv++) for (let i = 0; i < 4; i++) {
+    const j = (i + 1) % 4, y0 = 0.3 + lv * 1.25, y1 = y0 + 1.25;
+    for (const [a, b] of [[onPost(i, y0), onPost(j, y1)], [onPost(j, y0), onPost(i, y1)]]) placeStrut(add(dg, strutGeo(a, b, 0.022, 6), steel), a, b);
+  }
+  add(dg, rboxGeo(0.9, 0.35, 0.9, 0.05), orange, 0, TOP + 0.15, 0);
+  const bit = new THREE.Group(); dg.add(bit);
+  const bitM = std({ color: 0x9aa0a8, metalness: 0.9, roughness: 0.3, emissive: 0xff3000, emissiveIntensity: 0 });
+  add(bit, new THREE.CylinderGeometry(0.07, 0.07, 4, 12), bitM);
+  for (let i = 0; i < 22; i++) { const m = add(bit, new THREE.BoxGeometry(0.34, 0.03, 0.09), bitM, 0, -1.95 + i * 0.12, 0); m.rotation.y = i * 0.6; m.rotation.z = 0.25; }
+  add(bit, new THREE.ConeGeometry(0.12, 0.25, 12).rotateX(Math.PI), bitM, 0, -2.1, 0);
+  add(bit, rboxGeo(0.55, 0.6, 0.55, 0.06), orange, 0, 2.25, 0);                                   // top-drive motor
+  for (let i = 0; i < 4; i++) add(bit, new THREE.BoxGeometry(0.6, 0.03, 0.6), dark, 0, 2.05 + i * 0.12, 0);
+  const tank = new THREE.Group(); tank.position.set(3.2, 0, 1.0); dg.add(tank);
+  add(tank, new THREE.CylinderGeometry(0.85, 0.85, 1.9, 28), white, 0, 1.25, 0);
+  add(tank, new THREE.SphereGeometry(0.85, 28, 12, 0, Math.PI * 2, 0, Math.PI / 2), white, 0, 2.2, 0);
+  for (const yy of [0.75, 1.75]) add(tank, new THREE.CylinderGeometry(0.87, 0.87, 0.07, 28), steel, 0, yy, 0);
+  for (let i = 0; i < 3; i++) { const a = i * 2.094 + 0.3; add(tank, new THREE.BoxGeometry(0.1, 0.35, 0.1), dark, Math.cos(a) * 0.7, 0.17, Math.sin(a) * 0.7); }
+  const tl = canvasTex(128, 64); tl.x.fillStyle = '#e6e6e2'; tl.x.fillRect(0, 0, 128, 64); tl.x.fillStyle = '#1d6fd6'; tl.x.font = 'bold 40px Arial'; tl.x.textAlign = 'center'; tl.x.fillText('H₂O', 64, 46);
+  add(tank, new THREE.CylinderGeometry(0.852, 0.852, 0.45, 24, 1, true, -0.5, 1.0), std({ map: tl.t, roughness: 0.6 }), 0, 2.0, 0);
+  add(dg, new THREE.PlaneGeometry(0.22, 1.9), dark, 3.2, 1.25, 1.0 + 0.86);
+  const gauge = add(dg, new THREE.BoxGeometry(0.14, 1.8, 0.05), new THREE.MeshBasicMaterial({ color: 0x4fc3ff }), 3.2, 1.2, 1.0 + 0.89);
+  const pipe = new THREE.CatmullRomCurve3([V3(0.5, 0.45, 0.6), V3(1.4, 0.32, 1.1), V3(2.2, 0.5, 1.2), V3(2.4, 0.9, 1.05)]);
+  add(dg, new THREE.TubeGeometry(pipe, 24, 0.05, 8), dark);
+  mars.colliders.push({ x: SITE.drill.x, z: SITE.drill.z, r: 1.9 }, { x: SITE.drill.x + 3.2, z: SITE.drill.z + 1.0, r: 1.1 });
+  Q.drill = { g: dg, bit, bitM, gauge, depth: 0, heat: 0, jam: false, done: false, pos: V3(SITE.drill.x, 0, SITE.drill.z) };
+
+  // --- Quest 3: lava tube with sliding blast doors and control consoles ---
+  const tg = site(SITE.tube); tg.rotation.y = TUBE.yaw;
+  const R = TUBE.R, L = TUBE.len, rk = rep(TEX.rock, 6, 3), rockM = std({ map: rk.map, normalMap: rk.normalMap, normalScale: new THREE.Vector2(0.45, 0.45), roughness: 0.97, color: 0xa88468, side: THREE.DoubleSide });
+  const ag = new THREE.CylinderGeometry(R, R, L, 28, 12, true, Math.PI / 2, Math.PI); ag.rotateX(Math.PI / 2); ag.translate(0, 0, L / 2);
+  const ap = ag.attributes.position;
+  for (let i = 0; i < ap.count; i++) { const x = ap.getX(i), y = ap.getY(i), z = ap.getZ(i), k = 1 + (fbm(x * 0.35 + 3, z * 0.35 + y * 0.2, 53, 3) - 0.5) * 0.24; ap.setXYZ(i, x * k, y * k, z); }
+  ag.computeVertexNormals();
+  add(tg, ag, rockM, 0, -0.15, 0);                                                         // basalt arch
+  add(tg, new THREE.CircleGeometry(R * 1.08, 20, 0, Math.PI), rockM, 0, -0.1, L - 0.3);      // collapsed far end
+  const bg = makeRockGeo(29), br = rep(TEX.rock, 2, 2), boulderM = std({ map: br.map, normalMap: br.normalMap, roughness: 0.95, color: 0xb89478 });
+  for (let i = 0; i < 12; i++) { const s = i % 2 ? 1 : -1, b = add(tg, bg, boulderM, s * (R + rand(3.0, 4.2)), rand(0.2, 1.4), 7 + (i >> 1) * 5 + rand(-1, 1)); b.scale.set(rand(2.2, 3.2), rand(1.8, 3.4), rand(2.4, 3.6)); b.rotation.y = rand(0, 6); }
+  add(tg, new THREE.TorusGeometry(R - 0.1, 0.3, 8, 28, Math.PI), steel, 0, 0, -0.1);       // portal frame
+  add(tg, new THREE.BoxGeometry(R * 4 + 1.4, 0.3, 0.5), steel, 0, R + 0.95, -0.6);           // door rail
+  for (const s of [-1, 1]) {
+    add(tg, new THREE.BoxGeometry(0.3, R + 0.95, 0.3), steel, s * (R * 2 + 0.5), (R + 0.95) / 2, -0.6);
+    add(tg, new THREE.CylinderGeometry(0.13, 0.13, 2.4, 14), dark, s * (R * 2 + 0.2), 3.6, -0.15);      // hydraulic ram
+    add(tg, new THREE.CylinderGeometry(0.06, 0.06, 1.6, 10), steel, s * (R * 2 + 0.2), 2.0, -0.15);
+  }
+  const dm = rep(TEX.metal, 2, 2), hz = rep(TEX.hazard, 3, 1);
+  const doorM = std({ color: 0x6b7079, metalness: 0.6, roughness: 0.5, map: dm.map, normalMap: dm.normalMap }), hazM = std({ map: hz.map, normalMap: hz.normalMap, roughness: 0.6 });
+  const portM = std({ color: 0x0c1418, metalness: 0.9, roughness: 0.08, emissive: 0xffb070, emissiveIntensity: 0.25 });
+  const doors = [-1, 1].map(s => {
+    const d = add(tg, new THREE.BoxGeometry(R + 0.2, R + 0.6, 0.4), doorM, 0, (R + 0.6) / 2, -0.6);
+    add(d, new THREE.BoxGeometry(R + 0.22, 0.55, 0.42), hazM, 0, -(R + 0.6) / 2 + 0.55, 0);
+    for (const yy of [-1.0, 0.6, 2.2]) add(d, new THREE.BoxGeometry(R + 0.22, 0.14, 0.46), dark, 0, yy, 0);
+    add(d, rboxGeo(0.8, 0.5, 0.44, 0.1), portM, -s * 1.0, 1.4, 0);
+    d.userData.s = s; return d;
+  });
+  const tl1 = new THREE.PointLight(0xffb070, 0.8, 18, 2), tl2 = new THREE.PointLight(0xffb070, 0.7, 18, 2);   // dim work lamps
+  tl1.position.set(0, 4.6, 6); tl2.position.set(0, 4.6, 18); tg.add(tl1, tl2);
+  const conM = std({ color: 0x3b3f46, metalness: 0.5, roughness: 0.5 });
+  const items = [[-(R - 1.6), 4, 'Prime left door actuator', 2, 'L-ACTUATOR', 'PRIMED'], [R - 1.6, 4, 'Prime right door actuator', 2, 'R-ACTUATOR', 'PRIMED'], [-2.4, 15, 'Seal the blast doors', 3, 'BLAST DOORS', 'SEALED']].map(a => {
+    const cg2 = new THREE.Group(); cg2.position.set(a[0], 0, a[1]); cg2.rotation.y = Math.PI; tg.add(cg2);   // screens face the tube mouth
+    add(cg2, rboxGeo(0.55, 1.0, 0.45, 0.05), conM, 0, 0.5, 0);
+    add(cg2, rboxGeo(0.62, 0.06, 0.5, 0.02), conM, 0, 1.05, 0.05).rotation.x = 0.5;
+    const scr = canvasTex(256, 128), sm = add(cg2, new THREE.PlaneGeometry(0.5, 0.25), new THREE.MeshBasicMaterial({ map: scr.t }), 0, 1.09, 0.085);
+    sm.rotation.x = 0.5 - Math.PI / 2;
+    add(cg2, new THREE.CylinderGeometry(0.02, 0.02, 0.3, 6), steel, 0.22, 1.2, -0.12);
+    const lampM = add(cg2, new THREE.SphereGeometry(0.08, 12, 10), new THREE.MeshBasicMaterial({ color: 0xff3020 }), 0.22, 1.4, -0.12).material;
+    return { pos: world(tg, a[0], 0, a[1]), light: lampM, label: a[2], need: a[3], title: a[4], okText: a[5], scr, hold: 0, done: false };
+  });
+  Q.tube = { g: tg, doors, items, doorT: 0, sealed: false, closing: false, inside: false, mouth: world(tg, 0, 0, -3) };
+
+  // --- Quest 4: geodesic greenhouse with four perchlorate-laden soil beds ---
+  const og = site(SITE.dome); og.rotation.y = Math.atan2(-SITE.dome.x, -SITE.dome.z);         // doorway (+Z) faces the lander
+  const glass = add(og, new THREE.SphereGeometry(9, 32, 14, 0, Math.PI * 2, 0, Math.PI / 2), std({ color: 0xbfe8d8, transparent: true, opacity: 0.16, roughness: 0.05, metalness: 0.1, side: THREE.DoubleSide, depthWrite: false }));
+  glass.userData.noShadow = true;
+  const wf = new THREE.WireframeGeometry(new THREE.IcosahedronGeometry(9.04, 2)).attributes.position.array, keep = [];
+  for (let i = 0; i < wf.length; i += 6) if (wf[i + 1] > -0.05 && wf[i + 4] > -0.05) keep.push(wf[i], wf[i + 1], wf[i + 2], wf[i + 3], wf[i + 4], wf[i + 5]);
+  const lg = new THREE.BufferGeometry(); lg.setAttribute('position', new THREE.Float32BufferAttribute(keep, 3));
+  og.add(new THREE.LineSegments(lg, new THREE.LineBasicMaterial({ color: 0xdfe5ec })));       // struts
+  add(og, new THREE.TorusGeometry(9, 0.24, 8, 56), white, 0, 0.15, 0).rotation.x = Math.PI / 2;
+  add(og, new THREE.CircleGeometry(8.9, 40), std({ color: 0x4a4038, roughness: 1 }), 0, 0.04, 0).rotation.x = -Math.PI / 2;
+  for (const s of [-1, 1]) add(og, new THREE.BoxGeometry(0.3, 2.7, 0.3), steel, s * 1.4, 1.35, 8.9);
+  add(og, new THREE.BoxGeometry(3.1, 0.3, 0.3), steel, 0, 2.8, 8.9);
+  const leafM = std({ color: 0x3fa64a, roughness: 0.7 }), leafG = new THREE.SphereGeometry(0.16, 8, 6), stemG = new THREE.CylinderGeometry(0.015, 0.02, 0.4, 5);
+  const beds = [[-3.8, -3], [3.8, -3], [-3.8, 2.4], [3.8, 2.4]].map(b => {
+    add(og, rboxGeo(2.6, 0.5, 1.6, 0.06), white, b[0], 0.25, b[1]);
+    add(og, new THREE.CylinderGeometry(0.03, 0.03, 2.5, 8), steel, b[0], 0.6, b[1] - 0.72).rotation.z = Math.PI / 2;     // irrigation line
+    for (const sx of [-1.15, 1.15]) add(og, new THREE.CylinderGeometry(0.03, 0.03, 1.7, 8), steel, b[0] + sx, 1.35, b[1]);
+    const led = std({ color: 0x302838, emissive: 0xd060ff, emissiveIntensity: 0, roughness: 0.4 });
+    add(og, rboxGeo(2.4, 0.06, 0.3, 0.02), led, b[0], 2.2, b[1]);
+    const soilM = std({ color: 0xb5552e, roughness: 1 }); add(og, new THREE.BoxGeometry(2.4, 0.08, 1.4), soilM, b[0], 0.52, b[1]);
+    const plants = new THREE.Group(); plants.position.set(b[0], 0.56, b[1]); og.add(plants);
+    for (let i = 0; i < 8; i++) { const px = -0.9 + (i % 4) * 0.6, pz = i < 4 ? -0.35 : 0.35; add(plants, stemG, leafM, px, 0.2, pz); for (const s of [-1, 1]) { const lf = add(plants, leafG, leafM, px + s * 0.12, 0.36 + s * 0.04, pz); lf.scale.set(1, 0.25, 0.6); lf.rotation.z = s * 0.5; } }
+    return { pos: world(og, b[0], 0, b[1]), soilM, plants, led, hold: 0, done: false, grow: 0 };
+  });
+  const growLight = new THREE.PointLight(0xc8ffd0, 0, 22); growLight.position.set(0, 6, 0); og.add(growLight);
+  Q.dome = { g: og, beds, light: growLight, pos: V3(SITE.dome.x, 0, SITE.dome.z), door: world(og, 0, 0, 11) };
+
+  // --- Quest 5: steerable high-gain dish on the hill ---
+  const cg = site(SITE.comm);
+  add(cg, new THREE.CylinderGeometry(1.2, 1.5, 0.5, 20), dark, 0, 0.25, 0); add(cg, new THREE.CylinderGeometry(0.3, 0.4, 3.2, 14), steel, 0, 2.1, 0);
+  add(cg, new THREE.BoxGeometry(0.8, 1.1, 0.6), dark, 2.2, 0.55, 0);                         // control console
+  const az = new THREE.Group(); az.position.y = 3.8; cg.add(az);
+  add(az, new THREE.BoxGeometry(1.5, 0.3, 0.5), steel, 0, -0.15, 0);
+  const el = new THREE.Group(); az.add(el);
+  const dp = []; for (let i = 0; i <= 14; i++) { const r = i / 14 * 2.8; dp.push(new THREE.Vector2(r, r * r / 6.5)); }
+  const dishG = new THREE.LatheGeometry(dp, 36); dishG.rotateX(Math.PI / 2);
+  add(el, dishG, std({ color: 0xeeeeea, metalness: 0.3, roughness: 0.4, side: THREE.DoubleSide }), 0, 0, 0.3);
+  add(el, new THREE.CylinderGeometry(0.12, 0.2, 0.4, 10), dark, 0, 0, 2.1).rotation.x = Math.PI / 2;                   // feed horn at the focus
+  for (let i = 0; i < 3; i++) { const a = i * 2.0944, from = V3(Math.cos(a) * 2.5, Math.sin(a) * 2.5, 1.25), to = V3(0, 0, 2.1), st = add(el, new THREE.CylinderGeometry(0.025, 0.025, from.distanceTo(to), 6), steel); st.position.copy(from).add(to).multiplyScalar(0.5); st.quaternion.setFromUnitVectors(UP, to.clone().sub(from).normalize()); }
+  const beamG = new THREE.CylinderGeometry(1.6, 0.12, 700, 14, 1, true); beamG.rotateX(Math.PI / 2); beamG.translate(0, 0, 352);
+  const beam = add(el, beamG, new THREE.MeshBasicMaterial({ color: 0x8fd0ff, transparent: true, opacity: 0.4, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false }));
+  beam.visible = false; beam.userData.noShadow = true; beam.frustumCulled = false;
+  mars.colliders.push({ x: SITE.comm.x, z: SITE.comm.z, r: 1.7 });
+  Q.dish = { g: cg, az, el, beam, a: 0, e: 0, lock: 0, done: false, active: false, pos: V3(SITE.comm.x + 2.2, 0, SITE.comm.z + 1.4) };
+  for (const g of [dg, tg, og, cg].concat(Q.panels.map(p => p.g))) shadowAll(g);
+}
+// Pose helpers (also used when resetting for a replay).
+function setPanel(p) {
+  const t = smooth(0, 1, p.t), sy = lerp(0.25, 1, t), fan = smooth(0.25, 1, p.t);
+  p.mast.scale.y = sy; p.mast.position.y = 0.42 + 1.1 * sy; p.head.position.y = 0.5 + 2.2 * sy; p.head.rotation.x = t * 0.87;      // rise and tilt toward the Sun
+  p.fans.forEach(f => { f.position.x = f.userData.sd * lerp(0.35, 1.32, t); f.userData.wedges.forEach((w, i) => w.rotation.z = i * (Math.PI / 5) * fan + Math.PI * 0.4); });   // fans open like a hand fan
+}
+// Console screen text in the lava tube.
+function drawScreen(it) {
+  const x = it.scr.x, ok = it.done;
+  x.fillStyle = '#061016'; x.fillRect(0, 0, 256, 128);
+  x.strokeStyle = ok ? '#40ff70' : '#ff5040'; x.lineWidth = 5; x.strokeRect(5, 5, 246, 118);
+  x.fillStyle = '#9fd8ff'; x.font = 'bold 28px monospace'; x.fillText(it.title, 16, 46);
+  x.fillStyle = ok ? '#40ff70' : '#ffcf5a'; x.font = 'bold 26px monospace'; x.fillText(ok ? it.okText + ' \u2713' : 'HOLD ' + KEY_ACT, 16, 98);
+  it.scr.t.needsUpdate = true;
+}
+function setDoors() { const T = Q.tube, R = TUBE.R, t = smooth(0, 1, T.doorT); T.doors.forEach(d => d.position.x = d.userData.s * lerp((R + 0.2) / 2 + R - 0.6, (R + 0.2) / 2, t)); }
+function setDish() { const D = Q.dish; D.az.rotation.y = D.a * Math.PI / 180; D.el.rotation.x = -D.e * Math.PI / 180; }
+function resetProps() {
+  Q.panels.forEach(p => { p.t = 0; p.hold = 0; p.done = false; setPanel(p); });
+  Object.assign(Q.drill, { depth: 0, heat: 0, jam: false, done: false }); Q.drill.bit.position.y = 2.6; Q.drill.gauge.scale.y = 0.02; Q.drill.bitM.emissiveIntensity = 0;
+  const T = Q.tube; Object.assign(T, { doorT: 0, sealed: false, closing: false, inside: false });
+  T.items.forEach(a => { a.hold = 0; a.done = false; a.light.color.setHex(0xff3020); drawScreen(a); }); setDoors();
+  Q.dome.beds.forEach(b => { b.hold = 0; b.done = false; b.grow = 0; b.plants.visible = false; b.soilM.color.setHex(0xb5552e); b.led.emissiveIntensity = 0; }); Q.dome.light.intensity = 0;
+  Object.assign(Q.dish, { a: EARTH_AZ + 78, e: 14, lock: 0, done: false, active: false }); Q.dish.beam.visible = false; setDish();
+  mars.earth.forEach(s => s.visible = false);
+  mars.landerLight.intensity = 0; mars.lander.userData.winM.emissiveIntensity = 0;
+}
+/* ============================================================
+   EMERGENCY LANDING — powered descent onto the real terrain
+   ============================================================ */
+const land = { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, t: 0, done: false, after: 0, faded: false, teleT: 0, shake: 0 };
+// Keep the Sun's shadow box centred on the action (snapped to 2 m so shadows don't crawl).
+function sunFollow(x, y, z) {
+  const tx = Math.round(x / 2) * 2, tz = Math.round(z / 2) * 2;
+  mars.sun.target.position.set(tx, y, tz); mars.sun.position.set(tx + SUN_DIR.x * 200, y + SUN_DIR.y * 200, tz + SUN_DIR.z * 200);
+}
+function enterLanding() {
+  state = 'landing'; resetProps();
+  $('alarm').classList.add('hidden');
+  Object.assign(land, { x: rand(-9, 9), z: rand(-9, 9), y: heightAt(0, 0) + 170, vx: 0, vy: -20, vz: 0, t: 0, done: false, after: 4.6, faded: false, teleT: 0, shake: 0, smokeAcc: 0, throttle: 0, settleT: 0 });
+  mars.smoke.clear();
+  run.fuel = 100; mars.astro.visible = false; mars.puffs.clear(); clearPrints(); mars.scorch.visible = false;
+  mars.amb = mars.ambSet = mars.exposure = 1; mars.stdMats.forEach(m => m.envMapIntensity = 1); mars.hemi.intensity = 0.3;   // daylight again
+  mars.beacon.visible = true; mars.beacon.position.set(0, heightAt(0, 0) + 70, 0);
+  setQuest('Emergency Landing', 'The autopilot fires the engine to slow you down. Steer toward the beacon with ' + (IS_TOUCH ? 'the joystick' : 'W A S D') + '; hold ' + (IS_TOUCH ? 'BURN' : 'Space') + ' to brake harder.');
+  banner('POWERED DESCENT', 'Autopilot braking against Mars gravity (3.72 m/s²). Steer to the beacon.', false, 5);
+  touchButtons('BURN', false);
+  updateHUD();
+}
+function updateLanding(dt) {
+  const L = land, ship = mars.lander, g0 = heightAt(L.x, L.z), cam = mars.camera;
+  if (!L.done) {
+    const thrMax = 10 * (1 + lvl('thrust') * 0.12), alt0 = L.y - g0;
+    L.t += dt;
+    // Autopilot: throttle the engine smoothly to follow a gentle descent profile, fast high up and about
+    // 1.5 m/s at the ground. Holding Space / BURN asks it to brake harder; it never pushes the ship back up.
+    const brake = input.jump || input.act;
+    const vTarget = Math.max(1.4, Math.min(20, alt0 * 0.2 + 1.0)) * (brake ? 0.55 : 1);
+    const cmd = run.fuel > 0 ? clamp((MARS_G + 2.2 * (-vTarget - L.vy)) / thrMax, 0, 1) : 0;
+    L.throttle = damp(L.throttle, cmd, 6, dt);
+    L.vy += (L.throttle * thrMax - MARS_G) * dt;
+    run.fuel = Math.max(0, run.fuel - 6 * L.throttle * (1 - lvl('fuel') * 0.09) * dt);
+    L.vx = damp(L.vx, input.mx * 9 + Math.sin(L.t * 0.6) * 2.2, 1.5, dt);          // thrusters fight a crosswind
+    L.vz = damp(L.vz, -input.my * 9 + Math.cos(L.t * 0.45) * 1.8, 1.5, dt);
+    L.x = clamp(L.x + L.vx * dt, -14, 14); L.z = clamp(L.z + L.vz * dt, -14, 14); L.y += L.vy * dt;
+    const alt = L.y - g0, fl = ship.userData.flame;
+    const burning = L.throttle > 0.04, tq = L.throttle;                          // flame size follows the throttle
+    fl.visible = burning; fl.scale.set(0.55 + tq * 0.45, (0.35 + tq * 0.85) * (1 + rand(-0.12, 0.12)), 0.55 + tq * 0.45); aud.burn = tq;
+    ship.position.set(L.x, Math.max(L.y, g0), L.z); ship.rotation.set(L.vz * 0.02, 0, -L.vx * 0.02);
+    if (burning && alt < 55) {                                                    // engine blast scours the ground: rolling dust plume
+      const k = 1 - alt / 55; L.smokeAcc += dt * (14 + 110 * k * k) * Math.min(1, 0.3 + L.throttle);
+      while (L.smokeAcc >= 1) {
+        L.smokeAcc--;
+        const a = rand(0, 6.28), c = Math.cos(a), sn = Math.sin(a), sp = rand(6, 20) * (0.35 + k), r0 = rand(0.5, 3);
+        mars.smoke.spawn(V3(L.x + c * r0, g0 + rand(0.3, 1.6), L.z + sn * r0), V3(c * sp, rand(0.4, 2.5) + k * 2.5, sn * sp), rand(4, 8), rand(2.5, 4.5), rand(8, 15) * (0.6 + k * 0.6), rand(0.6, 0.9), 0.85, 0.3);
+      }
+    }
+    if (alt <= 0) {                                                               // ---- touchdown ----
+      const v = -L.vy; let msg, cls = 'good'; run.landV = v;
+      L.done = true; L.y = g0; fl.visible = false; aud.burn = 0; sfx.thump(v);
+      mars.scorch.position.set(L.x, g0 + 0.03, L.z); mars.scorch.rotation.y = rand(0, 6.28); mars.scorch.visible = true; L.shake = clamp(v / 14, 0.05, 1.5);
+      if (v <= 6) msg = 'Soft touchdown at ' + v.toFixed(1) + ' m/s. Life support intact.';
+      else if (v <= 14) { run.o2 = 80; msg = 'Hard landing at ' + v.toFixed(1) + ' m/s. An oxygen line cracked: reserve at 80%.'; cls = 'warn'; }
+      else { run.o2 = 65; run.hull = Math.max(5, run.hull - 25); msg = 'Crash landing at ' + v.toFixed(1) + ' m/s. Oxygen reserve at 65%.'; cls = 'warn'; }
+      run.energy = clamp(Math.round(55 + run.hull * 0.45), 60, 100);              // suit charged from what is left of the ship's batteries
+      for (let i = 0; i < 130; i++) { const a = rand(0, 6.28), c = Math.cos(a), sn = Math.sin(a), sp = rand(3, 24) * (0.5 + Math.min(1, v / 12)), r0 = rand(1, 3.5);       // touchdown burst
+        mars.smoke.spawn(V3(L.x + c * r0, g0 + rand(0.2, 2.2), L.z + sn * r0), V3(c * sp, rand(0.5, 4.5), sn * sp), rand(6, 12), rand(3, 5), rand(10, 22), rand(0.65, 0.92), 0.7, 0.25); }
+      banner('TOUCHDOWN — JEZERO CRATER', msg, v > 6, 5); toast(msg, cls);
+    }
+  } else {
+    L.after -= dt; L.settleT += dt;
+    ship.position.y = g0 - 0.12 * Math.sin(clamp(L.settleT / 0.6, 0, 1) * Math.PI);   // landing legs absorb the touchdown
+    ship.rotation.x = damp(ship.rotation.x, 0, 5, dt); ship.rotation.z = damp(ship.rotation.z, 0, 5, dt);
+    if (L.after <= 0 && !L.faded) { L.faded = true; fade(enterSurface); }
+  }
+  L.shake = Math.max(0, L.shake - dt);
+  const pull = L.done ? (4.6 - L.after) * 2.2 : 0;                                // after touchdown, drift back to watch the dust
+  cam.position.set(L.x + 16 + pull * 0.6 + rand(-1, 1) * L.shake, Math.max(L.y + 7, g0 + 3) + pull * 0.35 + rand(-1, 1) * L.shake, L.z + 27 + pull);
+  cam.lookAt(L.x, L.y + 5, L.z);
+  sunFollow(L.x, g0, L.z); mars.puffs.update(dt); mars.smoke.update(dt); updateSky(dt);
+  L.teleT -= dt;
+  if (L.teleT <= 0) {
+    L.teleT = 0.1;
+    const vs = -L.vy;
+    $('tele').innerHTML = 'ALT <b>' + Math.max(0, L.y - g0).toFixed(0) + ' m</b> · DESCENT <b style="color:' + (vs <= 6 ? 'var(--ok)' : vs <= 14 ? 'var(--warn)' : 'var(--bad)') + '">' + vs.toFixed(1) + ' m/s</b> · ' + (innerWidth < 420 ? 'AUTO' : 'AUTOPILOT') + ' <b>' + Math.round(L.throttle * 100) + '%</b> · FUEL <b>' + Math.round(run.fuel) + '%</b>';
+  }
+}
+
+/* ============================================================
+   ASTRONAUT — third-person control under 0.38 g
+   ============================================================ */
+const player = { printT: 0, foot: 1, pos: V3(), vel: V3(), yaw: 0, onGround: true, camYaw: 0.5, camPitch: 0.24, camDist: 7.5, stepT: 0, acting: false, warned: 0 };
+const tubeLoc = (x, z) => { const dx = x - SITE.tube.x, dz = z - SITE.tube.z, s = Math.sin(TUBE.yaw), c = Math.cos(TUBE.yaw); return [dx * c - dz * s, dx * s + dz * c]; };   // -> [across, along]
+const tubeWorld = (lx, lz) => { const s = Math.sin(TUBE.yaw), c = Math.cos(TUBE.yaw); return [SITE.tube.x + lx * c + lz * s, SITE.tube.z - lx * s + lz * c]; };
+function enterSurface() {
+  const P = player;
+  state = 'mars';
+  $('tele').classList.add('hidden'); touchButtons('ACT', true);
+  P.pos.set(land.x + 5, 0, land.z + 4.5); P.pos.y = heightAt(P.pos.x, P.pos.z); P.vel.set(0, 0, 0);
+  Object.assign(P, { yaw: 0.8, onGround: true, camYaw: 0.5, camPitch: 0.24, camDist: 7.5, acting: false, warned: 0 });
+  mars.astro.visible = true; mars.lander.userData.flame.visible = false;
+  mars.colliders = mars.colliders.filter(c => !c.lander); mars.colliders.push({ x: land.x, z: land.z, r: 3.5, lander: true });
+  updateGravel(true);
+  mars.landerLight.position.set(land.x + 2, heightAt(land.x, land.z) + 6, land.z + 3);
+  mars.camera.position.set(P.pos.x + 4, P.pos.y + 3, P.pos.z + 7);
+  banner('SOL 1 — JEZERO CRATER', 'A dry lake bed and river delta, 3.5 billion years old', false, 6);
+  toast('ARES LOG: The ship will never fly again. Whatever keeps me alive has to come from Mars itself.');
+  $('compass').classList.remove('hidden');
+  showFieldManual();
+  beginQuest(0);
+}
+// Push the player out of solid things: boulders and hardware, the tube's rock walls, the dome's glass.
+function collide(P, px, pz) {
+  const p = P.pos, T = Q.tube, R = TUBE.R, shut = T.closing || T.doorT > 0.5;
+  for (const c of mars.colliders) { const dx = p.x - c.x, dz = p.z - c.z, d = Math.hypot(dx, dz), m = c.r + 0.45; if (d < m && d > 1e-4) { p.x = c.x + dx / d * m; p.z = c.z + dz / d * m; } }
+  let [lx, lz] = tubeLoc(p.x, p.z);
+  if (T.inside) {
+    lx = clamp(lx, -(R - 1.7), R - 1.7); lz = Math.min(lz, TUBE.len - 2);
+    if (shut) lz = Math.max(lz, 0.7);                              // sealed doors hold us in
+    else if (lz < -0.3) T.inside = false;
+    [p.x, p.z] = tubeWorld(lx, lz);
+  } else if (lz > -0.2 && lz < TUBE.len + 2 && Math.abs(lx) < R + 2.6) {
+    const oz = tubeLoc(px, pz)[1];
+    if (oz <= -0.2 && Math.abs(lx) < R - 1.2 && !shut) T.inside = true;   // walked in through the mouth
+    else { p.x = px; p.z = pz; }                                          // solid rock / closed door
+  }
+  const D = Q.dome.pos, ddx = p.x - D.x, ddz = p.z - D.z, dd = Math.hypot(ddx, ddz);
+  if (Math.abs(dd - 9) < 0.55) {
+    let da = Math.atan2(ddx, ddz) - Q.dome.g.rotation.y; da = Math.atan2(Math.sin(da), Math.cos(da));
+    if (Math.abs(da) > 0.14) { const nr = Math.hypot(px - D.x, pz - D.z) >= 9 ? 9.56 : 8.44; p.x = D.x + ddx / dd * nr; p.z = D.z + ddz / dd * nr; }   // only the doorway is open
+  }
+  const r = Math.hypot(p.x, p.z);
+  if (r > 250) { p.x *= 250 / r; p.z *= 250 / r; if (run.time - P.warned > 8) { P.warned = run.time; toast('The crater rim is too steep to climb. Turn back.', 'warn'); } }
+}
+function updatePlayer(dt) {
+  const P = player, locked = Q.dish.active, tired = run.energy <= 0;
+  const sprint = input.sprint && !tired, max = (sprint ? 9.5 : 6) * (tired ? 0.6 : 1) * (1 + lvl('speed') * 0.08);
+  let mx = input.mx, my = input.my; const mag = Math.hypot(mx, my); if (mag > 1) { mx /= mag; my /= mag; }
+  if (locked) mx = my = 0;
+  const sy = Math.sin(P.camYaw), cy = Math.cos(P.camYaw), k = P.onGround ? 7 : 1.2;       // far less steering authority in the air
+  P.vel.x = damp(P.vel.x, (-sy * my + cy * mx) * max, k, dt); P.vel.z = damp(P.vel.z, (-cy * my - sy * mx) * max, k, dt);
+  if (P.onGround && input.jumpEdge && !locked) { P.vel.y = 4.3; P.onGround = false; sfx.jump(); }     // same push-off, 2.6x the height of Earth
+  P.vel.y -= MARS_G * dt;
+  const px = P.pos.x, pz = P.pos.z;
+  P.pos.addScaledVector(P.vel, dt);
+  collide(P, px, pz);
+  const gy = heightAt(P.pos.x, P.pos.z);
+  if (P.pos.y <= gy || (P.onGround && P.pos.y - gy < 0.4)) {
+    if (!P.onGround && P.vel.y < -2.5) sfx.land();
+    if (!P.onGround && P.vel.y < -2.5) for (let i = 0; i < 5; i++) mars.puffs.spawn(P.pos, V3(rand(-1.5, 1.5), rand(0.3, 1), rand(-1.5, 1.5)), 1.4, 0.4, 2.4, 0.35);
+    P.pos.y = gy; P.vel.y = 0; P.onGround = true;
+  } else P.onGround = false;
+  const hs = Math.hypot(P.vel.x, P.vel.z);
+  if (hs > 0.4) { let d = Math.atan2(P.vel.x, P.vel.z) - P.yaw; d = Math.atan2(Math.sin(d), Math.cos(d)); P.yaw += d * (1 - Math.exp(-10 * dt)); }
+  if (P.onGround && hs > 0.6) { P.printT -= hs * dt; if (P.printT <= 0 && Math.hypot(P.pos.x - Q.dome.pos.x, P.pos.z - Q.dome.pos.z) > 9.3) { P.printT = 0.78; P.foot = -P.foot; stampPrint(P.pos, P.yaw, P.foot); } }
+  if (P.onGround && hs > 1) { P.stepT -= hs * dt; if (P.stepT <= 0) { P.stepT = 2.4; sfx.step(); mars.puffs.spawn(P.pos, V3(rand(-0.3, 0.3), 0.45, rand(-0.3, 0.3)), 1.3, 0.3, 1.7, 0.3); } }   // kicked-up dust
+  if (sprint && hs > 6.5) run.energy = Math.max(0, run.energy - 0.7 * dt);
+  if (run.energy <= 0 && !run.wFlat) { run.wFlat = true; toast('Suit battery empty: you can still walk, but not sprint. Recharge at the lander or a solar array.', 'warn'); }
+  if (run.energy > 20) run.wFlat = false;
+  mars.astro.position.copy(P.pos); mars.astro.rotation.y = P.yaw;
+  animateAstronaut(mars.astro, dt, clamp(hs / 9, 0, 1), !P.onGround, P.acting);
+  return sprint && hs > 6.5;
+}
+const camGoal = V3(), camLook = V3();
+function updateMarsCamera(dt) {
+  const P = player, cam = mars.camera, T = Q.tube, D = Q.dish, R = TUBE.R;
+  P.camYaw -= input.lookX * 0.005; P.camPitch = clamp(P.camPitch + input.lookY * 0.004, -0.2, 1.15);
+  if (D.active) {                                                  // dish console: look past the dish at Earth
+    const c = D.g.position;
+    const hx = Math.sin(EARTH_AZ * Math.PI / 180), hz = Math.cos(EARTH_AZ * Math.PI / 180);       // behind the dish, a little to the side
+    camGoal.set(c.x - hx * 10 + hz * 2.5, c.y + 2.0, c.z - hz * 10 - hx * 2.5);
+    camLook.copy(camGoal).addScaledVector(dirFrom(EARTH_AZ, 27), 30);                         // dish low in frame, Earth high
+    cam.position.lerp(camGoal, 1 - Math.exp(-3 * dt)); cam.lookAt(camLook); return;
+  }
+  P.camDist = damp(P.camDist, T.inside ? 3.4 : 7.5, 5, dt);
+  const pitch = T.inside ? Math.min(P.camPitch, 0.35) : P.camPitch, cp = Math.cos(pitch), ty = P.pos.y + 1.55;
+  let cx = P.pos.x + Math.sin(P.camYaw) * cp * P.camDist, cz = P.pos.z + Math.cos(P.camYaw) * cp * P.camDist, cyy = ty + Math.sin(pitch) * P.camDist;
+  if (T.inside) {                                                  // keep the camera under the rock roof
+    let [lx, lz] = tubeLoc(cx, cz);
+    lx = clamp(lx, -(R - 1.4), R - 1.4); lz = clamp(lz, T.doorT > 0.5 ? 0.9 : -40, TUBE.len - 1.5);
+    [cx, cz] = tubeWorld(lx, lz);
+    cyy = Math.min(cyy, T.g.position.y + Math.sqrt(Math.max(1, (R - 0.9) * (R - 0.9) - lx * lx)) - 0.4);
+  }
+  cyy = Math.max(cyy, heightAt(cx, cz) + 0.5);
+  camGoal.set(cx, cyy, cz); cam.position.lerp(camGoal, 1 - Math.exp(-16 * dt)); cam.lookAt(P.pos.x, ty, P.pos.z);
+}
+/* ============================================================
+   4. QUESTS — interaction, progress and narrative beats
+   ============================================================ */
+const KEY_ACT = IS_TOUCH ? 'ACT' : 'E';
+const SOIL_DIRTY = new THREE.Color(0xb5552e), SOIL_CLEAN = new THREE.Color(0x4a3222);
+const flat = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
+function setQuest(title, desc) { $('questTitle').textContent = title; $('questDesc').textContent = desc; }
+function touchButtons(actLabel, jump) {
+  $('btnAct').classList.toggle('hidden', !actLabel); if (actLabel) $('btnAct').textContent = actLabel;
+  $('btnJump').classList.toggle('hidden', !jump);
+}
+const STORY = [
+  'ARES LOG: Batteries are failing. Three solar arrays are still packed around the lander. Deploy them.',
+  'ARES LOG: Ground radar shows water ice about 2 m under the drill site. Water means drinking water, oxygen and fuel.',
+  null,
+  'ARES LOG: The storm has passed. Next problem is food, and this soil is laced with toxic perchlorate salts.',
+  'ARES LOG: Power, water, shelter, food. Mars can keep a human alive. Earth needs to know.'
+];
+function beginQuest(i) {
+  run.quest = i;
+  setQuest('Q' + (i + 1) + '/5 · ' + QUESTS[i].title, QUESTS[i].desc);
+  if (i === 2) {
+    run.storm = true; sfx.alarm();
+    banner('⚠ SOLAR PARTICLE EVENT', 'A solar storm is hitting Mars. Get under rock now!', true, 6);
+    toast('Radiation alarm: thin air and no magnetic field mean no protection. Run for the lava tube.', 'warn');
+  } else toast(STORY[i]);
+  if (i === 3) { Q.tube.closing = false; toast('Blast doors reopening.', 'good'); }
+  showBrief(i);
+  updateHUD();
+}
+function completeQuest(i) {
+  run.done = i + 1; paused = true; sfx.chime();
+  setPrompt(null); $('wp').classList.add('hidden'); mars.beacon.visible = false;
+  const f = FACTS[i];
+  $('cardTag').textContent = 'QUEST ' + (i + 1) + '/5 COMPLETE · HABITABILITY ' + (i + 1) * 20 + '%';
+  $('cardTitle').textContent = f.title;
+  $('cardBody').innerHTML = f.body.map(p => '<p>' + p + '</p>').join('') + '<p class="src">' + f.src + '</p>';
+  $('cardGo').textContent = i < 4 ? 'CONTINUE MISSION' : 'COMPLETE MISSION';
+  setTimeout(() => $('card').classList.remove('hidden'), 350);
+}
+$('cardGo').addEventListener('click', () => {
+  if ($('card').classList.contains('hidden')) return;
+  $('card').classList.add('hidden'); paused = false; sfx.click();
+  if (run.done < 5) beginQuest(run.done); else endMission(true);
+});
+function enterDish() {
+  Q.dish.active = true; $('align').classList.remove('hidden'); touchButtons(null, false);
+  mars.earth.forEach(s => s.visible = true);
+  toast('Earth is the small blue "star" near the Sun. Seen from Mars it never strays more than about 47° from the Sun.');
+}
+function exitDish() {
+  const D = Q.dish; if (!D.active || D.done) return;
+  D.active = false; $('align').classList.add('hidden'); touchButtons('ACT', true);
+  mars.earth.forEach(s => s.visible = false);
+}
+$('alignExit').addEventListener('click', exitDish);
+
+// Runs every frame on Mars. Returns what to show: prompt text, hold progress, waypoint target, drawer info.
+function updateQuests(dt) {
+  const P = player, act = input.act, T = Q.tube, D = Q.dish, out = { prompt: null, prog: 0, target: null, info: '' };
+  const FLAT = 'Suit battery flat: recharge at the lander';
+  const useEnergy = rate => { if (run.energy <= 0) return false; run.energy = Math.max(0, run.energy - rate * dt); return true; };
+  P.acting = false;
+  const goal = T.closing ? 1 : 0;                                   // blast doors always slide toward their goal
+  if (T.doorT !== goal) { T.doorT = goal > T.doorT ? Math.min(1, T.doorT + dt * 0.45) : Math.max(0, T.doorT - dt * 0.45); setDoors(); aud.servo = 1.4; }
+
+  switch (run.quest) {
+    case 0: {                                                       // ---- Quest 1: solar arrays ----
+      let n = 0, best = null, bd = 1e9;
+      for (const p of Q.panels) {
+        if (p.done) { n++; if (p.t < 1) { p.t = Math.min(1, p.t + dt * 0.55); setPanel(p); aud.servo = 1; } continue; }
+        const d = flat(P.pos, p.pos); if (d < bd) { bd = d; best = p; }
+      }
+      out.info = 'Arrays deployed ' + n + '/3';
+      if (best) {
+        out.target = best.pos;
+        if (bd < 3.2) {
+          if (act) { best.hold += dt; P.acting = true; } else best.hold = Math.max(0, best.hold - dt * 2);
+          out.prompt = 'Hold ' + KEY_ACT + ': deploy solar array'; out.prog = best.hold / 1.6;
+          if (best.hold >= 1.6) { best.done = true; sfx.done(); toast('Array ' + (n + 1) + ' unfolding toward the Sun…', 'good'); }
+        }
+      } else if (Q.panels.every(p => p.t >= 1)) {
+        run.energy = 100; mars.landerLight.intensity = 1.6; mars.lander.userData.winM.emissiveIntensity = 1.4;
+        toast('Power restored: 3 arrays online. Recharge your suit at the lander any time.', 'good');
+        completeQuest(0);
+      }
+      break;
+    }
+    case 1: {                                                       // ---- Quest 2: ISRU ice drill ----
+      const R = Q.drill; let drilling = false;
+      out.target = R.pos; out.info = 'Depth ' + R.depth.toFixed(2) + ' / 2.00 m · bit heat ' + Math.round(R.heat * 100) + '%';
+      if (flat(P.pos, R.pos) < 3.8) {
+        out.prompt = R.jam ? 'Bit OVERHEATED: let go of ' + KEY_ACT + ' so it can cool' : 'Hold ' + KEY_ACT + ': drill for ice · depth ' + R.depth.toFixed(2) + ' m · bit heat ' + Math.round(R.heat * 100) + '%';
+        out.prog = R.depth / 2;
+        if (act && !R.jam) {
+          drilling = true; P.acting = true;
+          R.depth = Math.min(2, R.depth + dt * 0.16); R.heat += dt * 0.34; R.bit.rotation.y += dt * 14;
+          if (Math.random() < dt * 14) mars.puffs.spawn(V3(R.g.position.x + rand(-0.4, 0.4), R.g.position.y + 0.3, R.g.position.z + rand(-0.4, 0.4)), V3(rand(-1.2, 1.2), rand(0.6, 1.6), rand(-1.2, 1.2)), 1.4, 0.4, 2.2, 0.5);
+          aud.drill = 0.4 + R.heat;
+          if (R.heat >= 1) { R.jam = true; toast('Drill bit overheated! Let go to cool it.', 'warn'); sfx.warn(); }
+        }
+      }
+      if (!drilling) { R.heat = Math.max(0, R.heat - dt * 0.5); if (R.jam && R.heat < 0.25) R.jam = false; }
+      const s = Math.max(0.02, R.depth / 2);
+      R.bitM.emissiveIntensity = R.heat * R.heat * 2.2;                            // the bit glows as it heats up
+      R.bit.position.y = 2.6 - R.depth * 1.25; R.gauge.scale.y = s; R.gauge.position.y = 0.3 + 0.9 * s;
+      if (R.depth >= 2 && !R.done) {
+        R.done = true; run.o2 = 100; sfx.done();
+        toast('Ice reached! Melted water is split into hydrogen and breathable oxygen. Tanks full, and the lander now refills your O₂.', 'good');
+        completeQuest(1);
+      }
+      break;
+    }
+    case 2: {                                                       // ---- Quest 3: lava tube shelter ----
+      const [a0, a1, seal] = T.items;
+      out.info = 'Actuators ' + (a0.done + a1.done) + '/2 · doors ' + (T.sealed ? 'sealed' : T.closing ? 'closing' : 'open');
+      if (!T.inside) { out.target = T.mouth; break; }
+      const next = !a0.done && (a1.done || flat(P.pos, a0.pos) < flat(P.pos, a1.pos)) ? a0 : !a1.done ? a1 : seal;
+      out.target = next.done ? null : next.pos;
+      for (const it of T.items) {
+        if (it.done || flat(P.pos, it.pos) > 2.1) continue;
+        if (it === seal && !(a0.done && a1.done)) { out.prompt = 'Prime both door actuators first'; break; }
+        if (act) { it.hold += dt; P.acting = true; } else it.hold = Math.max(0, it.hold - dt * 2);
+        out.prompt = 'Hold ' + KEY_ACT + ': ' + it.label.toLowerCase(); out.prog = it.hold / it.need;
+        if (it.hold >= it.need) {
+          it.done = true; it.light.color.setHex(0x40ff70); sfx.done(); drawScreen(it);
+          if (it === seal) { T.closing = true; toast('Blast doors closing…', 'good'); } else toast(it.label.replace('Prime', 'Primed') + '.', 'good');
+        }
+        break;
+      }
+      if (T.closing && T.doorT >= 1 && !T.sealed) {
+        T.sealed = true; run.storm = false;
+        toast('Sealed. The basalt overhead blocks the storm: radiation is down to almost nothing.', 'good');
+        completeQuest(2);
+      }
+      break;
+    }
+    case 3: {                                                       // ---- Quest 4: perchlorates + Green Dome ----
+      const G = Q.dome; let n = 0, best = null, bd = 1e9;
+      for (const b of G.beds) {
+        if (b.done) { n++; if (b.grow < 1) { b.grow = Math.min(1, b.grow + dt * 0.35); b.plants.scale.setScalar(0.05 + b.grow * 0.95); } continue; }
+        const d = flat(P.pos, b.pos); if (d < bd) { bd = d; best = b; }
+      }
+      out.info = 'Soil beds treated ' + n + '/4';
+      if (best && flat(P.pos, G.pos) > 8.6) out.target = G.door;    // outside: guide to the doorway
+      else if (best) {
+        out.target = best.pos;
+        if (bd < 2.4) {
+          {
+            if (act) { best.hold += dt; P.acting = true; aud.radio = 0.25; } else best.hold = Math.max(0, best.hold - dt * 2);
+            out.prompt = 'Hold ' + KEY_ACT + ': rinse perchlorates out of the soil'; out.prog = best.hold / 2.5;
+            best.soilM.color.copy(SOIL_DIRTY).lerp(SOIL_CLEAN, clamp(best.hold / 2.5, 0, 1));
+            if (best.hold >= 2.5) { best.done = true; sfx.done(); best.led.emissiveIntensity = 1.8; best.plants.visible = true; best.plants.scale.setScalar(0.05); best.soilM.color.copy(SOIL_CLEAN); toast('Bed ' + (n + 1) + ' is clean. Seedlings sprouting.', 'good'); }
+          }
+        }
+      } else if (G.beds.every(b => b.grow >= 1)) {
+        G.light.intensity = 1.4;
+        toast('The Green Dome is alive: plants growing in Martian soil.', 'good');
+        completeQuest(3);
+      }
+      if (G.light.intensity < 1.4) G.light.intensity = 0.3 * n;      // grow lights come on bed by bed
+      break;
+    }
+    case 4: {                                                       // ---- Quest 5: align the dish with Earth ----
+      out.target = D.pos;
+      if (D.done) {
+        D.sendT -= dt; aud.carrier = 1; D.beam.material.opacity = 0.3 + Math.sin(run.time * 12) * 0.12; out.info = 'Transmitting…';
+        if (D.sendT <= 0 && D.active) { D.active = false; $('align').classList.add('hidden'); touchButtons('ACT', true); completeQuest(4); }
+        break;
+      }
+      if (D.active) {
+        P.acting = true;
+        D.a = (D.a + input.mx * 26 * dt + Math.sin(run.time * 0.8) * 0.9 * dt + 360) % 360;   // wind gusts nudge the dish
+        D.e = clamp(D.e + input.my * 18 * dt, 2, 85); setDish();
+        const err = Math.acos(clamp(dirFrom(D.a, D.e).dot(EARTH_DIR), -1, 1)) * 180 / Math.PI, sig = Math.pow(clamp(1 - err / 40, 0, 1), 1.5);
+        D.lock = err < 3 ? D.lock + dt : Math.max(0, D.lock - dt * 2);
+        aud.radio = 1 - sig * 0.85; aud.carrier = sig > 0.6 ? sig : 0; aud.servo = Math.min(1, Math.abs(input.mx) + Math.abs(input.my)) * 0.8;
+        $('sigFill').style.width = Math.round(sig * 100) + '%';
+        $('alignTxt').textContent = D.lock > 0 ? 'Carrier lock ' + Math.round(D.lock / 1.5 * 100) + '%: hold steady' : 'Pointing error ' + err.toFixed(1) + '° · signal ' + Math.round(sig * 100) + '% · ' + (IS_TOUCH ? 'joystick' : 'WASD / arrows') + ' to steer';
+        out.info = 'Signal strength ' + Math.round(sig * 100) + '%';
+        if (D.lock >= 1.5) {
+          D.done = true; D.sendT = 4.5; D.beam.visible = true; sfx.lock();
+          banner('PROOF OF LIFE: TRANSMITTING', 'Locked on Earth. The signal will reach the Deep Space Network in about ' + Math.round(rand(4, 21)) + ' minutes.', false, 5);
+          $('alignTxt').textContent = 'LOCKED: transmitting'; $('sigFill').style.width = '100%';
+        } else if (input.actEdge) exitDish();
+      } else {
+        out.info = 'Dish offline: reach the console';
+        if (flat(P.pos, D.pos) < 2.6) { out.prompt = 'Press ' + KEY_ACT + ': use the dish console'; if (input.actEdge) enterDish(); }
+      }
+      break;
+    }
+  }
+  return out;
+}
+
+/* ---------- survival: oxygen, suit energy, radiation ---------- */
+function updateSurvival(dt, sprinting) {
+  const P = player, nearLander = flat(P.pos, land) < 8.5;
+  const o2use = 0.22 * (sprinting ? 1.6 : 1) / (1 + lvl('o2') * 0.15);
+  if (run.done >= 2 && nearLander) run.o2 = Math.min(100, run.o2 + 8 * dt); else run.o2 -= o2use * dt;
+  run.energy = Math.max(0, run.energy - 0.05 * dt);                                       // suit heaters
+  const nearArray = Q.panels.some(a => a.done && flat(P.pos, a.pos) < 4.5);                // deployed arrays charge the suit too
+  run.charging = (run.done >= 1 && nearLander) || nearArray;
+  if (run.charging) run.energy = Math.min(100, run.energy + 9 * dt);
+  const rate = Q.tube.inside ? 0 : run.storm ? 0.8 : 0.02;                                 // % of a lethal dose per second
+  run.rad = Math.min(100, run.rad + rate * (1 - lvl('rad') * 0.14) * dt);
+  aud.geigerRate = rate * (1 - lvl('rad') * 0.14);
+  if (run.o2 < 25 && !run.w1) { run.w1 = true; sfx.warn(); toast('Oxygen below 25%' + (run.done >= 2 ? '. Refill at the lander.' : '. Water ice could be turned into oxygen.'), 'warn'); }
+  if (run.o2 < 10 && !run.w2) { run.w2 = true; sfx.alarm(); banner('⚠ OXYGEN CRITICAL', run.done >= 2 ? 'Get back to the lander' : 'Reach the ice drill', true, 4); }
+  if (run.rad > 60 && !run.w3) { run.w3 = true; sfx.warn(); toast('Radiation dose above 60%. Get under cover!', 'warn'); }
+  if (run.o2 <= 0) { run.o2 = 0; endMission(false, 'Your oxygen ran out.'); }
+  else if (run.rad >= 100) endMission(false, 'You absorbed a lethal radiation dose.');
+  return nearLander;
+}
+
+/* ---------- waypoint marker + beacon pillar ---------- */
+const wpV = V3();
+function updateWaypoint(target) {
+  const wp = $('wp');
+  if (!target || Q.dish.active) { wp.classList.add('hidden'); mars.beacon.visible = false; return; }
+  const dist = flat(player.pos, target), gy = heightAt(target.x, target.z);
+  mars.beacon.visible = dist > 14 && !Q.tube.inside; mars.beacon.position.set(target.x, gy + 70, target.z);
+  if (dist < 4) { wp.classList.add('hidden'); return; }
+  wpV.set(target.x, gy + 2.2, target.z).project(mars.camera);
+  let x = wpV.x, y = wpV.y;
+  if (wpV.z > 1) { x = -x; y = -1.5; }                                // behind the camera: pin to the bottom edge
+  const m = Math.max(1, Math.abs(x) / 0.9, y > 0 ? y / 0.7 : -y / 0.8); x /= m; y /= m;
+  wp.style.transform = 'translate(' + ((x * 0.5 + 0.5) * innerWidth) + 'px,' + ((-y * 0.5 + 0.5) * innerHeight) + 'px) translate(-50%,-50%)';
+  $('wpTxt').textContent = Math.round(dist) + ' m';
+  wp.classList.remove('hidden');
+}
+
+/* ---------- HUD ---------- */
+function updateHUD() {
+  $('o2Fill').style.width = run.o2 + '%'; $('o2Txt').textContent = Math.ceil(run.o2);
+  $('enFill').style.width = run.energy + '%'; $('enTxt').textContent = Math.ceil(run.energy);
+  $('o2Meter').classList.toggle('low', run.o2 < 25); $('enMeter').classList.toggle('low', run.energy < 15);
+  $('ptsTxt').textContent = save.points;
+  $('questProg').textContent = run.info || '';
+  renderSteps();
+  const rt = $('radTxt'); rt.textContent = 'Radiation ' + Math.round(run.rad) + '%' + (run.storm ? ' ⚠ STORM' : '');
+  rt.style.color = run.storm || run.rad > 60 ? 'var(--bad)' : '';
+}
+$('hudToggle').addEventListener('click', () => { const c = $('hud').classList.toggle('collapsed'); $('hudToggle').textContent = c ? '▾' : '▴'; });
+
+function updateMars(dt) {
+  run.time += dt;
+  const sprinting = updatePlayer(dt), q = updateQuests(dt), nearLander = updateSurvival(dt, sprinting);
+  if (!q.prompt && ((run.charging && run.energy < 99.5) || (nearLander && run.done >= 2 && run.o2 < 99.5))) {
+    q.prompt = nearLander ? 'Life-support link: recharging' : 'Solar array: charging suit battery'; q.prog = nearLander && run.done >= 2 ? Math.min(run.o2, run.energy) / 100 : run.energy / 100;
+  }
+  setPrompt(paused || state !== 'mars' ? null : q.prompt, q.prog);
+  run.info = q.info;
+  updateMarsCamera(dt);
+  sunFollow(player.pos.x, player.pos.y, player.pos.z);
+  updateMotes(dt); mars.puffs.update(dt); mars.smoke.update(dt); updateDetails(dt);
+  updateWaypoint(paused || state !== 'mars' ? null : q.target);
+  updateCompass(q.target);
+  updateMarker(state === 'mars' ? q.target : null, dt);
+}
+
+/* ---------- quest guidance: briefing card, live checklist, markers ---------- */
+const BRIEF = [
+  { why: 'The lander\'s batteries are almost dead. Three folding solar arrays, the same fan-shaped "UltraFlex" design NASA flew on the InSight lander, are packed on the ground around the ship.',
+    steps: ['Follow the <b>orange marker</b> (and the diamond on the compass) to a packed array.', 'Stand next to it and <b>hold {E}</b> until the bar fills. The fans open toward the Sun.', 'Do the same for <b>all 3 arrays</b>.'] },
+  { why: 'Water means drinking water, food, and oxygen (by splitting H₂O). Ground radar shows ice about 2 metres under the drill site.',
+    steps: ['Follow the marker to the <b>drill rig</b>.', '<b>Hold {E}</b> to drill down. The arrays now power the drill.', 'If the drill bit glows <b>red</b> it is overheating: <b>let go</b> for a few seconds so it cools, then hold again.', 'Reach <b>2.00 m</b> depth to hit the ice.'] },
+  { why: 'A solar storm is hitting Mars. Mars has no magnetic field and very thin air, so radiation reaches the ground, but metres of rock stop it.',
+    steps: ['<b>Run</b> to the lava tube ({SPRINT}). Your radiation dose climbs while you are outside.', 'Inside, <b>hold {E}</b> at the <b>left door control</b> (red light).', '<b>Hold {E}</b> at the <b>right door control</b>.', '<b>Hold {E}</b> at the <b>seal console</b> deeper inside. The blast doors close.'] },
+  { why: 'Martian soil contains perchlorate salts, which are toxic to people and plants. They dissolve in water, so washing the soil removes them.',
+    steps: ['Walk to the <b>glass greenhouse dome</b> and go in through its <b>door</b>.', '<b>Hold {E}</b> at a <b>red soil bed</b> until it turns dark and clean.', 'Clean <b>all 4 beds</b>. Seedlings sprout in each one.'] },
+  { why: 'Earth thinks your crew was lost. Send the "Proof of Life" signal with the big radio dish on the hill.',
+    steps: ['Climb the hill to the <b>dish console</b>.', '<b>Press {E}</b> once to take control of the dish.', 'Steer with <b>{MOVE}</b> toward <b>Earth</b>, the small blue "star" near the Sun, until the signal bar is full.', 'Hold steady until the lock completes.'] }
+];
+// Live checklist for the HUD drawer: [text, done?] per step.
+function questSteps(i) {
+  const P = player, T = Q.tube, D = Q.dish, G = Q.dome;
+  const n1 = Q.panels.filter(a => a.done).length, n4 = G.beds.filter(b => b.done).length;
+  const inDome = Math.hypot(P.pos.x - G.pos.x, P.pos.z - G.pos.z) < 8.6;
+  return [
+    [['Deploy array 1', n1 >= 1], ['Deploy array 2', n1 >= 2], ['Deploy array 3', n1 >= 3]],
+    [['Reach the drill rig', Q.drill.depth > 0 || flat(P.pos, Q.drill.pos) < 4], ['Drill to 1 m (let go if the bit glows red)', Q.drill.depth >= 1], ['Drill to 2 m: ice!', Q.drill.done]],
+    [['Run into the lava tube', T.inside || T.items[0].done], ['Left door control', T.items[0].done], ['Right door control', T.items[1].done], ['Seal console (deeper inside)', T.items[2].done]],
+    [['Enter the greenhouse dome', inDome || n4 > 0], ['Clean the soil beds (' + n4 + '/4)', n4 >= 4]],
+    [['Reach the dish console', D.active || D.done || flat(P.pos, D.pos) < 2.6], ['Press ' + KEY_ACT + ' to take control', D.active || D.done], ['Aim at Earth until locked', D.done]]
+  ][i];
+}
+function renderSteps() {
+  if (run.quest < 0 || state !== 'mars') { $('questSteps').innerHTML = ''; return; }
+  let cur = false;
+  $('questSteps').innerHTML = questSteps(run.quest).map(s => {
+    const cls = s[1] ? 'ok' : (!cur ? (cur = true, 'now') : '');
+    return '<li class="' + cls + '"><i>' + (s[1] ? '✓' : cls === 'now' ? '▶' : '•') + '</i><span>' + s[0] + '</span></li>';
+  }).join('');
+}
+const keyWord = t => t.replace(/\{E\}/g, IS_TOUCH ? '<b>ACT</b>' : '<kbd>E</kbd>').replace(/\{SPRINT\}/g, IS_TOUCH ? 'push the joystick to its edge' : 'hold <kbd>Shift</kbd>')
+  .replace(/\{MOVE\}/g, IS_TOUCH ? 'the joystick' : '<kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>');
+let pendingBrief = -1;
+function showBrief(i) {
+  if (!$('help').classList.contains('hidden')) { pendingBrief = i; return; }     // the field manual goes first
+  const B = BRIEF[i];
+  $('briefTag').textContent = 'QUEST ' + (i + 1) + ' OF 5 · BRIEFING';
+  $('briefTitle').textContent = QUESTS[i].title;
+  $('briefWhy').textContent = B.why;
+  $('briefSteps').innerHTML = B.steps.map(t => '<li>' + keyWord(t) + '</li>').join('');
+  $('brief').classList.remove('hidden'); paused = true;
+}
+$('briefGo').addEventListener('click', () => { if ($('brief').classList.contains('hidden')) return; $('brief').classList.add('hidden'); paused = false; sfx.click(); });
+// Pulsing ring + bobbing arrow on the ground at the current objective.
+function buildMarker() {
+  const m = new THREE.MeshBasicMaterial({ color: 0xff7a3c, transparent: true, opacity: 0.8, depthWrite: false, side: THREE.DoubleSide, fog: false });
+  const g = new THREE.Group(), ring = new THREE.Mesh(new THREE.RingGeometry(0.85, 1.1, 48).rotateX(-Math.PI / 2), m);
+  const arrow = new THREE.Mesh(new THREE.ConeGeometry(0.26, 0.6, 4).rotateX(Math.PI), m);
+  g.add(ring, arrow); g.visible = false; mars.scene.add(g);
+  mars.marker = { g, ring, arrow, m };
+}
+function updateMarker(target, dt) {
+  const M = mars.marker, show = target && !Q.dish.active && !paused && flat(player.pos, target) < 60 && flat(player.pos, target) > 1.2;
+  M.g.visible = !!show; if (!show) return;
+  const t = performance.now() / 1000;
+  M.g.position.set(target.x, heightAt(target.x, target.z) + 0.06, target.z);
+  M.ring.scale.setScalar(1 + 0.18 * Math.sin(t * 4)); M.m.opacity = 0.55 + 0.3 * Math.sin(t * 4);
+  M.arrow.position.y = 2.4 + 0.25 * Math.sin(t * 3); M.arrow.rotation.y += dt * 2;
+}
+
+/* ============================================================
+   5. VICTORY / FAILURE -> back to the hangar
+   ============================================================ */
+function endMission(win, reason) {
+  if (run.ended) return;
+  run.ended = true; state = 'end'; paused = true;
+  setPrompt(null); mars.beacon.visible = false;
+  for (const id of ['wp', 'align', 'alarm', 'touch', 'compass', 'help', 'brief']) $(id).classList.add('hidden'); pendingBrief = -1;
+  if (mars.marker) mars.marker.g.visible = false;
+  menuOpen = false; $('menu').classList.add('hidden');
+  const t = Math.floor(run.time), mmss = Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0');
+  const C = save.career;
+  if (win) { save.points += WIN_REWARD; C.wins++; if (!C.best || run.time < C.best) C.best = run.time; sfx.victory(); } else sfx.fail();
+  saveGame();
+  // Star rating (bragging rights only: the reward is always 100 points).
+  const why = [], soft = run.landV <= 6, quick = run.time < 480, safe = run.rad < 40;
+  const stars = win ? Math.max(1, soft + quick + safe) : 0;
+  if (win) { why.push((soft ? '✓' : '✗') + ' soft landing', (quick ? '✓' : '✗') + ' under 8 minutes', (safe ? '✓' : '✗') + ' radiation below 40%'); }
+  $('endStars').innerHTML = win ? '★'.repeat(Math.min(3, stars)) + '<i>' + '★'.repeat(3 - Math.min(3, stars)) + '</i>' : '';
+  $('endWhy').textContent = why.join(' · ');
+  $('endTag').textContent = win ? 'MISSION COMPLETE · ALL 5 QUESTS' : 'MISSION LOST · ' + run.done + '/5 QUESTS';
+  $('endTitle').textContent = win ? 'Proof of Life received on Earth' : 'Signal lost from Jezero Crater';
+  $('endBody').textContent = win
+    ? 'You turned a crash site into the first outpost on Mars: power from sunlight, oxygen and water from buried ice, shelter under basalt, food from cleaned soil. ' + WIN_REWARD + ' points added. Spend them on your suit and rocket, then fly again.'
+    : reason + ' Upgrade your suit in the hangar and try again.';
+  $('endStats').innerHTML = [['Time on Mars', mmss], ['Oxygen left', Math.round(run.o2) + '%'], ['Radiation dose', Math.round(run.rad) + '%'], [win ? 'Points earned' : 'Point balance', win ? '+' + WIN_REWARD + ' ★' : save.points + ' ★']]
+    .map(s => '<div>' + s[0] + '<b>' + s[1] + '</b></div>').join('');
+  $('endGo').textContent = win ? 'SPEND ' + save.points + ' ★ IN THE HANGAR' : 'RETURN TO HANGAR';
+  updateHUD();
+  setTimeout(() => $('end').classList.remove('hidden'), 600);
+}
+$('endGo').addEventListener('click', () => { sfx.click(); fade(enterHangar); });
+
+/* ============================================================
+   INPUT — keyboard, mouse drag, touch joystick + buttons
+   ============================================================ */
+const keys = {};
+let touchAct = false, touchJump = false;
+const joy = { id: null, x: 0, y: 0, dx: 0, dy: 0, sprint: false }, look = { id: null, x: 0, y: 0 };
+function readKeys() {
+  const kx = (keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0);
+  const ky = (keys.KeyW || keys.ArrowUp ? 1 : 0) - (keys.KeyS || keys.ArrowDown ? 1 : 0);
+  input.mx = clamp(kx + joy.dx, -1, 1); input.my = clamp(ky + joy.dy, -1, 1);
+  input.act = !!(keys.KeyE || keys.KeyF || touchAct);
+  input.jump = !!(keys.Space || touchJump);
+  input.sprint = !!(keys.ShiftLeft || keys.ShiftRight || joy.sprint);
+}
+addEventListener('keydown', e => {
+  const k = e.code;
+  if (k === 'Enter' || k === 'Space') {                               // keyboard can close the cards
+    for (const id of ['help', 'brief', 'card', 'end']) if (!$(id).classList.contains('hidden')) { $(id + 'Go').click(); e.preventDefault(); return; }
+    if (menuOpen && k === 'Enter') { closeMenu(); return; }
+    if (state === 'hangar' && k === 'Enter') { startMission(); return; }
+  }
+  if (!keys[k]) { if (k === 'Space') input.jumpEdge = true; if (k === 'KeyE' || k === 'KeyF') input.actEdge = true; }
+  keys[k] = true;
+  if (k === 'Escape' && Q.dish.active && !Q.dish.done) exitDish();
+  else if (k === 'Escape' || k === 'KeyP') { if (state !== 'hangar' || menuOpen) toggleMenu(); }
+  if (k === 'Space' || k.indexOf('Arrow') === 0) e.preventDefault();
+  readKeys();
+});
+addEventListener('keyup', e => { keys[e.code] = false; readKeys(); });
+addEventListener('blur', () => { for (const k in keys) keys[k] = false; readKeys(); });
+
+const canvas = $('gl');
+canvas.addEventListener('pointerdown', e => {
+  if (state !== 'hangar' && e.pointerType === 'touch' && e.clientX < innerWidth * 0.5 && joy.id === null) {
+    Object.assign(joy, { id: e.pointerId, x: e.clientX, y: e.clientY, dx: 0, dy: 0 });
+    const j = $('joy'); j.style.display = 'block'; j.style.left = e.clientX + 'px'; j.style.top = e.clientY + 'px'; $('joyKnob').style.transform = '';
+  } else if (look.id === null) Object.assign(look, { id: e.pointerId, x: e.clientX, y: e.clientY });
+  else return;
+  try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
+});
+canvas.addEventListener('pointermove', e => {
+  if (e.pointerId === joy.id) {
+    let dx = e.clientX - joy.x, dy = e.clientY - joy.y; const m = Math.hypot(dx, dy), R = 50;
+    joy.sprint = m > R * 1.3;                                          // push past the ring to sprint
+    if (m > R) { dx *= R / m; dy *= R / m; }
+    joy.dx = dx / R; joy.dy = -dy / R; $('joyKnob').style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
+    readKeys();
+  } else if (e.pointerId === look.id) {
+    const dx = e.clientX - look.x, dy = e.clientY - look.y; look.x = e.clientX; look.y = e.clientY;
+    if (state === 'hangar') { hangar.yaw += dx * 0.008; hangar.idle = 0; }
+    else { const k = e.pointerType === 'touch' ? 1.4 : 1; input.lookX += dx * k; input.lookY += dy * k; }
+  }
+});
+const endPointer = e => {
+  if (e.pointerId === joy.id) { joy.id = null; joy.dx = joy.dy = 0; joy.sprint = false; $('joy').style.display = 'none'; readKeys(); }
+  if (e.pointerId === look.id) look.id = null;
+};
+canvas.addEventListener('pointerup', endPointer); canvas.addEventListener('pointercancel', endPointer);
+function holdButton(id, set) {
+  const b = $(id), up = () => { set(false); b.classList.remove('on'); };
+  b.addEventListener('pointerdown', e => { e.preventDefault(); set(true); b.classList.add('on'); try { b.setPointerCapture(e.pointerId); } catch (err) {} });
+  b.addEventListener('pointerup', up); b.addEventListener('pointercancel', up); b.addEventListener('lostpointercapture', up);
+}
+holdButton('btnAct', v => { if (v && !touchAct) input.actEdge = true; touchAct = v; readKeys(); });
+holdButton('btnJump', v => { if (v && !touchJump) input.jumpEdge = true; touchJump = v; readKeys(); });
+addEventListener('contextmenu', e => { if (state !== 'hangar') e.preventDefault(); });
+
+
+/* ============================================================
+   MENUS, COMPASS, FIELD MANUAL, CAREER STATS
+   ============================================================ */
+let menuOpen = false;
+const HELP_KEYS = [['<kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / arrows', 'Walk · steer the ship · aim the dish'], ['Drag mouse', 'Look around'], ['<kbd>Shift</kbd>', 'Sprint (uses suit energy)'],
+  ['<kbd>Space</kbd>', 'Jump · brake harder while landing'], ['<kbd>E</kbd>', 'Use / hold to work'], ['<kbd>Esc</kbd> <kbd>P</kbd>', 'Pause menu']];
+const HELP_TOUCH = [['Left thumb', 'Joystick: move (push far to sprint)'], ['Right thumb', 'Drag to look around'], ['JUMP', 'Jump'], ['ACT / BURN', 'Use, hold to work · brake harder while landing'], ['❚❚', 'Pause menu']];
+const helpHTML = () => (IS_TOUCH ? HELP_TOUCH : HELP_KEYS).map(r => '<span>' + r[0] + '</span><span>' + r[1] + '</span>').join('');
+function refreshMenu() {
+  $('mSound').textContent = 'SOUND: ' + (sfx.muted ? 'OFF' : 'ON');
+  $('mQuality').textContent = 'GRAPHICS: ' + (QUALITY === 'high' ? 'HIGH (bloom, film look)' : 'LOW (faster)');
+  const inGame = state !== 'hangar' && state !== 'end';
+  $('mAbort').classList.toggle('hidden', !inGame);
+  $('mReset').classList.toggle('hidden', state !== 'hangar');
+  resetArmed = false; clearTimeout(resetTimer); $('mReset').textContent = 'RESET PROGRESS (START OVER)';
+  $('menuTag').textContent = inGame ? 'MISSION PAUSED' : 'SETTINGS';
+  $('mResume').textContent = inGame ? 'RESUME' : 'CLOSE';
+}
+function openMenu() {
+  if (menuOpen || fading || ['card', 'end', 'help', 'brief'].some(id => !$(id).classList.contains('hidden'))) return;
+  menuOpen = true; refreshMenu(); $('mHelpBox').classList.add('hidden'); $('menu').classList.remove('hidden'); sfx.click();
+}
+function closeMenu() { if (!menuOpen) return; menuOpen = false; $('menu').classList.add('hidden'); sfx.click(); }
+const toggleMenu = () => menuOpen ? closeMenu() : openMenu();
+$('mResume').addEventListener('click', closeMenu);
+$('hudPause').addEventListener('click', openMenu);
+$('gear').addEventListener('click', openMenu);
+$('mSound').addEventListener('click', () => { sfx.init(); sfx.toggleMute(); refreshMenu(); sfx.click(); });
+$('mQuality').addEventListener('click', () => {
+  QUALITY = QUALITY === 'high' ? 'low' : 'high';
+  try { localStorage.setItem('projectAres.quality', QUALITY); } catch (e) {}
+  applyQuality(); refreshMenu(); sfx.click();
+});
+$('mHelp').addEventListener('click', () => { const b = $('mHelpBox'); b.innerHTML = helpHTML(); b.classList.toggle('hidden'); sfx.click(); });
+$('mAbort').addEventListener('click', () => { closeMenu(); endMission(false, 'You aborted the mission.'); });
+// Start over: back to 60 points, no upgrades, empty career. Needs a second tap within 4 s so it can't happen by accident.
+let resetArmed = false, resetTimer = 0;
+$('mReset').addEventListener('click', () => {
+  const b = $('mReset'); sfx.click();
+  if (!resetArmed) {
+    resetArmed = true; b.textContent = 'TAP AGAIN TO ERASE POINTS & UPGRADES';
+    resetTimer = setTimeout(() => { resetArmed = false; b.textContent = 'RESET PROGRESS (START OVER)'; }, 4000);
+    return;
+  }
+  clearTimeout(resetTimer); resetArmed = false;
+  save.points = 60; for (const k in save.up) save.up[k] = 0; for (const k in save.career) save.career[k] = 0;
+  saveGame(); try { localStorage.removeItem('projectAres.manual'); } catch (e) {}   // the field manual shows again on the first landing
+  styleAll(); renderUpgrades(); renderCareer(); closeMenu();
+  banner('PROGRESS RESET', 'Back to 60 points with the base ship and suit', false, 3);
+});
+// Auto-pause when the tab is hidden mid-mission.
+document.addEventListener('visibilitychange', () => { if (document.hidden && state !== 'hangar' && state !== 'end') openMenu(); });
+// First time on the surface: a short field manual.
+function showFieldManual() {
+  let seen = false; try { seen = localStorage.getItem('projectAres.manual') === '1'; } catch (e) {}
+  if (seen) return;
+  try { localStorage.setItem('projectAres.manual', '1'); } catch (e) {}
+  $('helpBox').innerHTML = helpHTML(); $('help').classList.remove('hidden'); paused = true;
+}
+$('helpGo').addEventListener('click', () => {
+  $('help').classList.add('hidden'); paused = false; sfx.click();
+  if (pendingBrief >= 0) { const i = pendingBrief; pendingBrief = -1; showBrief(i); }
+});
+
+// Compass strip: heading of the camera, cardinal points, and the objective's bearing (north = -Z, east = +X).
+const CMP = { span: 120, ticks: [] };
+(() => {
+  const names = { 0: 'N', 45: 'NE', 90: 'E', 135: 'SE', 180: 'S', 225: 'SW', 270: 'W', 315: 'NW' };
+  for (let a = 0; a < 360; a += 15) { const e = document.createElement('span'); e.textContent = names[a] || '·'; if (!names[a]) e.className = 't'; e.dataset.a = a; $('compass').appendChild(e); CMP.ticks.push(e); }
+  CMP.obj = document.createElement('i'); $('compass').appendChild(CMP.obj);
+  CMP.home = document.createElement('i'); CMP.home.className = 'home'; $('compass').appendChild(CMP.home);
+})();
+function updateCompass(target) {
+  const hdg = ((-player.camYaw * 180 / Math.PI) % 360 + 360) % 360, W = $('compass').clientWidth || 300;
+  const place = (el, a) => { const d = ((a - hdg + 540) % 360) - 180; el.style.left = (W / 2 + d / CMP.span * W) + 'px'; el.style.display = Math.abs(d) > CMP.span / 2 + 6 ? 'none' : ''; return d; };
+  for (const e of CMP.ticks) place(e, +e.dataset.a);
+  if (target) {
+    const b = Math.atan2(target.x - player.pos.x, -(target.z - player.pos.z)) * 180 / Math.PI, d = ((b - hdg + 540) % 360) - 180;
+    CMP.obj.style.display = ''; CMP.obj.style.left = (W / 2 + clamp(d, -CMP.span / 2, CMP.span / 2) / CMP.span * W) + 'px';
+  } else CMP.obj.style.display = 'none';
+  // Blue diamond = the lander, shown when you need to recharge or refill there.
+  const needHome = (run.done >= 1 && run.energy < 20) || (run.done >= 2 && run.o2 < 30);
+  if (needHome) { const b = Math.atan2(land.x - player.pos.x, -(land.z - player.pos.z)) * 180 / Math.PI, d = ((b - hdg + 540) % 360) - 180; CMP.home.style.display = ''; CMP.home.style.left = (W / 2 + clamp(d, -CMP.span / 2, CMP.span / 2) / CMP.span * W) + 'px'; }
+  else CMP.home.style.display = 'none';
+}
+// Career line in the hangar.
+function renderCareer() {
+  const c = save.career || {}, b = c.best ? Math.floor(c.best / 60) + ':' + String(Math.floor(c.best % 60)).padStart(2, '0') : '—';
+  $('career').innerHTML = 'Launches ' + (c.launches || 0) + ' · Missions won ' + (c.wins || 0) + ' · Best time ' + b;
+}
+// Red tint at the screen edges when life is in danger.
+let danger = 0;
+function updateDanger(dt) {
+  let t = 0;
+  if (state === 'space' && !$('alarm').classList.contains('hidden')) t = 0.55;
+  else if (state === 'space') t = clamp((space.t - 31) / 4, 0, 1) * 0.3;
+  else if (state === 'mars' && !paused) t = Math.max(run.o2 < 15 ? 0.5 : 0, run.storm && !Q.tube.inside ? 0.35 : 0, run.rad > 75 ? 0.4 : 0);
+  danger = damp(danger, t * (0.75 + 0.25 * Math.sin(performance.now() / 160)), 6, dt);
+  post.U.uRed.value = danger;
+}
+/* ============================================================
+   MAIN LOOP + BOOT
+   ============================================================ */
+let last = performance.now(), hudT = 0;
+// Sound mixer: turns the current game state into loop volumes and occasional one-shots.
+function updateAudio(dt) {
+  if (!sfx.ready) return;
+  const S = sfx.set, quiet = k => S(k, 0);
+  if (state === 'hangar') { S('hum', 0.10); S('hum2', 0.025); ['engine', 'engine2', 'wind', 'drill', 'servo', 'radio', 'tone'].forEach(quiet); return; }
+  S('hum', 0); S('hum2', 0);
+  if (paused || menuOpen || state === 'end') { ['engine', 'engine2', 'drill', 'servo', 'radio', 'tone'].forEach(quiet); S('wind', 0.03); return; }
+  if (state === 'space') {
+    const heat = clamp((space.t - 31) / 4, 0, 1);
+    S('engine', 0.32 + heat * 0.5, 260 + heat * 500); S('engine2', 0.05 + heat * 0.05, 120, 38 + heat * 12); S('wind', heat * 0.7, 300 + heat * 300);
+    ['drill', 'servo', 'radio', 'tone'].forEach(quiet); return;
+  }
+  if (state === 'landing') { S('engine', aud.burn * 0.75, 300); S('engine2', aud.burn * 0.1, 120, 42); S('wind', 0.25, 380); return; }
+  // On the surface.
+  const gust = 0.5 + 0.5 * Math.sin(run.time * 0.23) * Math.sin(run.time * 0.071 + 1);
+  quiet('engine'); quiet('engine2');
+  S('wind', Q.tube.inside ? 0.015 : 0.05 + gust * 0.09, 300 + gust * 260);
+  S('drill', aud.drill ? 0.12 : 0, 700 + aud.drill * 500, 95 + aud.drill * 60);
+  S('servo', aud.servo ? 0.05 : 0, 420, 60 + aud.servo * 20);
+  S('radio', aud.radio * 0.12); S('tone', aud.carrier * 0.06, 4000, 880);
+  aud.breathT -= dt;                                                     // suit breathing: faster when running or low on oxygen
+  if (aud.breathT <= 0) { const hard = input.sprint || run.o2 < 25; aud.breathT = hard ? 1.9 : 3.8; sfx.breath(hard); }
+  if (Math.random() < aud.geigerRate * 9 * dt + 0.1 * dt) sfx.geiger();   // Geiger counter clicks with the dose rate
+  aud.drill = aud.servo = aud.radio = aud.carrier = 0;
+}
+// One simulation step (no drawing) — split out so the debug hook can fast-forward the game.
+function step(dt) {
+  updateDanger(dt);
+  if (menuOpen && state !== 'hangar') { updateAudio(dt); input.lookX = input.lookY = 0; input.jumpEdge = input.actEdge = false; return; }
+  if (state === 'hangar') updateHangar(dt);
+  else if (state === 'space') { if (!paused) updateSpace(dt); run.info = 'Hull integrity ' + Math.round(run.hull) + '%'; }
+  else if (!paused) { if (state === 'landing') { updateLanding(dt); run.info = 'Hull ' + Math.round(run.hull) + '% · fuel ' + Math.round(run.fuel) + '%'; } else if (state === 'mars') updateMars(dt); }
+  if (state !== 'hangar') { hudT -= dt; if (hudT <= 0) { hudT = 0.12; updateHUD(); } }
+  updateAudio(dt);
+  input.lookX = input.lookY = 0; input.jumpEdge = input.actEdge = false;
+}
+function draw() {
+  const t = performance.now() / 1000;
+  const ex = (state === 'landing' || state === 'mars' || state === 'end') ? mars.exposure : 1;
+  post.U.uExposure.value = ex; renderer.toneMappingExposure = ex;
+  if (state === 'hangar') { post.U.uBloom.value = 0.45; post.U.uVig.value = 0.6; post.render(hangar.scene, hangar.camera, t); }
+  else if (state === 'space') { post.U.uBloom.value = 0.7; post.U.uVig.value = 0.75; post.render(space.scene, space.camera, t); }
+  else { post.U.uBloom.value = 0.4; post.U.uVig.value = 0.5; post.render(mars.scene, mars.camera, t); }
+}
+function frame(now) {
+  requestAnimationFrame(frame);
+  const dt = clamp((now - last) / 1000, 0, 0.05); last = now;
+  step(dt); draw();
+}
+function boot() {
+  buildTextures(); buildHangar(); buildSpace(); buildMarsWorld(); buildProps();
+  for (const b of Q.dome.beds) mars.colliders.push({ x: b.pos.x, z: b.pos.z, r: 1.0 });
+  for (const it of Q.tube.items) mars.colliders.push({ x: it.pos.x, z: it.pos.z, r: 0.45 });
+  mars.colliders.push({ x: SITE.comm.x + 2.2, z: SITE.comm.z, r: 0.55 });
+  resetProps(); styleAll(); applyQuality();
+  mars.stdMats = []; mars.scene.traverse(o => { const m = o.material; if (m && m.isMeshStandardMaterial && mars.stdMats.indexOf(m) < 0) mars.stdMats.push(m); });
+  const g0 = heightAt(0, 0);                                          // pre-compile every shader so stage changes don't hitch
+  mars.lander.position.set(0, g0, 0); mars.camera.position.set(14, g0 + 6, 24); mars.camera.lookAt(0, g0 + 4, 0); sunFollow(0, g0, 0);
+  onResize();
+  renderer.compile(hangar.scene, hangar.camera); renderer.compile(space.scene, space.camera); renderer.compile(mars.scene, mars.camera);
+  enterHangar();
+  $('loading').classList.add('hidden');
+  requestAnimationFrame(frame);
+  // Developer hook: open the file with #debug to inspect / teleport from the browser console.
+  if (/debug/.test(location.hash)) window.ARES = { run, save, player, land, Q, SITE, mars, space, input, heightAt, enterLanding, enterSurface, beginQuest, completeQuest, endMission, enterHangar, keys, readKeys, tick(sec, dt) { dt = dt || 1 / 60; for (let t = 0; t < sec; t += dt) step(dt); draw(); }, get state() { return state; }, get paused() { return paused; } };
+}
+setTimeout(() => {
+  try { boot(); }
+  catch (e) { console.error(e); $('loadTxt').textContent = 'Startup error: ' + e.message; $('loading').classList.remove('hidden'); }
+}, 30);
+})();
+</script>
+</body>
+</html>
